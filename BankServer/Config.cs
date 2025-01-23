@@ -5,6 +5,7 @@ public class Config
     public int Port { get; set; } = 65525;
     public int Timeout { get; set; } = 5000;
     public string IpAddress { get; set; } = "";
+    public int RemotePort { get; set; } = 65525; // port for connecting to other banks
 
     // database config
     public string DbServer { get; set; } = "localhost";
@@ -63,6 +64,12 @@ public class Config
             else if(args[i] == "--db-pass" && i + 1 < args.Length)
             {
                 config.DbPassword = args[i + 1];
+            }
+            else if(args[i] == "--remote-port" && i + 1 < args.Length)
+            {
+                int rp;
+                if(int.TryParse(args[i + 1], out rp))
+                    config.RemotePort = rp;
             }
         }
 

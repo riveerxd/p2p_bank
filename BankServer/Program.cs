@@ -40,7 +40,7 @@ class Program
         }
 
         var repo = new AccountRepository(db);
-        var bankService = new BankService(repo, config.IpAddress);
+        var bankService = new BankService(repo, config.IpAddress, config);
         var parser = new CommandParser(bankService);
         var server = new TcpBankServer(config.Port, parser, logger, config.Timeout);
 
