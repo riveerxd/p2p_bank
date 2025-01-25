@@ -1,4 +1,5 @@
 using P2PBank.Services;
+using P2PBank.Network;
 
 namespace P2PBank.Commands;
 
@@ -31,9 +32,13 @@ public class ABCommand : ICommand
 
         string ip = parts[1];
 
-        // TODO: proxy
+        // proxy to other bank
         if(ip != _bank.GetBankCode())
-            return "ER This bank does not handle accounts for " + ip;
+        {
+            var cfg = _bank.GetConfig();
+            string cmd = "AB " + accNum + "/" + ip;
+            return BankClient.SendCommand(ip, cfg.RemotePort, cmd, cfg.Timeout);
+        }
 
         var res = _bank.GetBalance(accNum);
         if(res.success)
