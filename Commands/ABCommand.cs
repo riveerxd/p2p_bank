@@ -1,0 +1,41 @@
+using P2PBank.Services;
+
+namespace P2PBank.Commands;
+
+// get account balance
+public class ABCommand : ICommand
+{
+    private BankService _bank;
+
+    public ABCommand(BankService bank)
+    {
+        _bank = bank;
+    }
+
+    public string Execute(string[] args)
+    {
+        // AB account/ip
+        if(args.Length < 2)
+            return "ER Invalid format. Use: AB account/ip";
+
+        var parts = args[1].Split('/');
+        if(parts.Length != 2)
+            return "ER Invalid account format. Use: account/ip";
+
+        int accNum;
+        if(!int.TryParse(parts[0], out accNum))
+            return "ER Account number must be a number";
+
+        string ip = parts[1];
+
+        // TODO: proxy
+        if(ip != _bank.GetBankCode())
+            return "ER This bank does not handle accounts for " + ip;
+
+        var res = _bank.GetBalance(accNum);
+        if(res.success)
+            return "AB " + res.balance;
+        else
+            return "ER " + res.error;
+    }
+}
