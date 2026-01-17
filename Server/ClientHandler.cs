@@ -27,6 +27,9 @@ public class ClientHandler
 
         try
         {
+            _client.ReceiveTimeout = _timeout;
+            _client.SendTimeout = _timeout;
+
             var stream = _client.GetStream();
             var reader = new StreamReader(stream, Encoding.UTF8);
             var writer = new StreamWriter(stream, Encoding.UTF8);
