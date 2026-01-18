@@ -26,6 +26,9 @@ public class ABCommand : ICommand
         if(!int.TryParse(parts[0], out accNum))
             return "ER Account number must be a number";
 
+        if(accNum < 10000 || accNum > 99999)
+            return "ER Account number must be between 10000 and 99999";
+
         string ip = parts[1];
 
         // TODO: proxy
