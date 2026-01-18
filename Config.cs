@@ -60,6 +60,10 @@ public class Config
             {
                 config.DbUser = args[i+1];
             }
+            else if(args[i] == "--db-pass" && i + 1 < args.Length)
+            {
+                config.DbPassword = args[i + 1];
+            }
         }
 
         // get IP if not provided

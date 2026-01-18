@@ -36,7 +36,6 @@ public class TcpBankServer
             try
             {
                 TcpClient client = _listener.AcceptTcpClient();
-                Console.WriteLine("Client connected");
 
                 // new thread for each client - assignment says real parallelism
                 Thread t = new Thread(() =>
