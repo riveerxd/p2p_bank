@@ -45,6 +45,10 @@ public class BankService
         if(acc == null)
             return (false, "Account not found");
 
+        // overflow check - this is important!
+        if(acc.Balance > long.MaxValue - amount)
+            return (false, "Deposit would cause overflow");
+
         long newBal = acc.Balance + amount;
         _repo.UpdateBalance(accNum, newBal);
         return (true, "");
