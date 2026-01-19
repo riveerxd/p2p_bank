@@ -7,6 +7,7 @@ public class BankService
 {
     private readonly AccountRepository _repo;
     private readonly string _bankCode;
+    private object _lock = new object(); // for thread safety
 
     public BankService(AccountRepository repo, string bankCode)
     {
@@ -18,21 +19,24 @@ public class BankService
 
     public (bool success, string result) CreateAccount()
     {
-        try
+        lock(_lock)
         {
-            int num = _repo.GetNextAccountNumber();
-
-            if(num > 99999)
+            try
             {
-                return (false, "Bank has reached maximum number of accounts");
-            }
+                int num = _repo.GetNextAccountNumber();
 
-            var acc = _repo.CreateAccount(num);
-            return (true, acc.AccountNumber + "/" + _bankCode);
-        }
-        catch(Exception ex)
-        {
-            return (false, "Failed to create account: " + ex.Message);
+                if(num > 99999)
+                {
+                    return (false, "Bank has reached maximum number of accounts");
+                }
+
+                var acc = _repo.CreateAccount(num);
+                return (true, acc.AccountNumber + "/" + _bankCode);
+            }
+            catch(Exception ex)
+            {
+                return (false, "Failed to create account: " + ex.Message);
+            }
         }
     }
 
@@ -41,17 +45,20 @@ public class BankService
         if(amount <= 0)
             return (false, "Amount must be positive");
 
-        var acc = _repo.GetAccount(accNum);
-        if(acc == null)
-            return (false, "Account not found");
+        lock(_lock)
+        {
+            var acc = _repo.GetAccount(accNum);
+            if(acc == null)
+                return (false, "Account not found");
 
-        // overflow check - this is important!
-        if(acc.Balance > long.MaxValue - amount)
-            return (false, "Deposit would cause overflow");
+            // overflow check - this is important!
+            if(acc.Balance > long.MaxValue - amount)
+                return (false, "Deposit would cause overflow");
 
-        long newBal = acc.Balance + amount;
-        _repo.UpdateBalance(accNum, newBal);
-        return (true, "");
+            long newBal = acc.Balance + amount;
+            _repo.UpdateBalance(accNum, newBal);
+            return (true, "");
+        }
     }
 
     public (bool success, string error) Withdraw(int accNum, long amount)
@@ -59,15 +66,18 @@ public class BankService
         if(amount <= 0)
             return (false, "Amount must be positive");
 
-        var acc = _repo.GetAccount(accNum);
-        if(acc == null)
-            return (false, "Account not found");
+        lock(_lock)
+        {
+            var acc = _repo.GetAccount(accNum);
+            if(acc == null)
+                return (false, "Account not found");
 
-        if(acc.Balance < amount)
-            return (false, "Insufficient funds");
+            if(acc.Balance < amount)
+                return (false, "Insufficient funds");
 
-        _repo.UpdateBalance(accNum, acc.Balance - amount);
-        return (true, "");
+            _repo.UpdateBalance(accNum, acc.Balance - amount);
+            return (true, "");
+        }
     }
 
     public (bool success, long balance, string error) GetBalance(int accNum)
@@ -81,16 +91,19 @@ public class BankService
 
     public (bool success, string error) RemoveAccount(int accNum)
     {
-        var acc = _repo.GetAccount(accNum);
-        if(acc == null)
-            return (false, "Account not found");
+        lock(_lock)
+        {
+            var acc = _repo.GetAccount(accNum);
+            if(acc == null)
+                return (false, "Account not found");
 
-        // cant delete if theres still money
-        if(acc.Balance != 0)
-            return (false, "Cannot delete account with non-zero balance");
+            // cant delete if theres still money
+            if(acc.Balance != 0)
+                return (false, "Cannot delete account with non-zero balance");
 
-        _repo.DeleteAccount(accNum);
-        return (true, "");
+            _repo.DeleteAccount(accNum);
+            return (true, "");
+        }
     }
 
     public long GetTotalAmount()
