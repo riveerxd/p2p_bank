@@ -3,6 +3,7 @@ namespace P2PBank.Logging;
 public class Logger
 {
     private string _logFile;
+    private object _lock = new object();
 
     public Logger(string logFile = "bank.log")
     {
@@ -15,6 +16,19 @@ public class Logger
         string line = "[" + timestamp + "] " + msg;
 
         Console.WriteLine(line);
+
+        // also write to file
+        lock(_lock)
+        {
+            try
+            {
+                File.AppendAllText(_logFile, line + "\n");
+            }
+            catch
+            {
+                // whatever, if file write fails just continue
+            }
+        }
     }
 
     public void LogInfo(string msg)
