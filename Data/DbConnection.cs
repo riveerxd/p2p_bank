@@ -23,6 +23,7 @@ public class DbConnection
         conn.Open();
 
         var cmd = conn.CreateCommand();
+        // FIXME: should probably check if database exists first?
         cmd.CommandText = @"CREATE TABLE IF NOT EXISTS accounts (
             account_number INT PRIMARY KEY,
             balance BIGINT NOT NULL DEFAULT 0,

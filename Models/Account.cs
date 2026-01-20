@@ -12,4 +12,11 @@ public class Account
         Balance = 0;
         CreatedAt = DateTime.Now;
     }
+
+    public Account(int accNum)
+    {
+        AccountNumber = accNum;
+        Balance = 0;
+        CreatedAt = DateTime.Now;
+    }
 }
