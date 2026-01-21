@@ -9,17 +9,15 @@ public class CommandParser
     public CommandParser(BankService bank)
     {
         // register all commands
-        _commands = new Dictionary<string, ICommand>
-        {
-            { "BC", new BCCommand(bank) },
-            { "AC", new ACCommand(bank) },
-            { "AD", new ADCommand(bank) },
-            { "AW", new AWCommand(bank) },
-            { "AB", new ABCommand(bank) },
-            { "AR", new ARCommand(bank) },
-            { "BA", new BACommand(bank) },
-            { "BN", new BNCommand(bank) }
-        };
+        _commands = new Dictionary<string, ICommand>();
+        _commands.Add("BC", new BCCommand(bank));
+        _commands.Add("AC", new ACCommand(bank));
+        _commands.Add("AD", new ADCommand(bank));
+        _commands.Add("AW", new AWCommand(bank));
+        _commands.Add("AB", new ABCommand(bank));
+        _commands.Add("AR", new ARCommand(bank));
+        _commands.Add("BA", new BACommand(bank));
+        _commands.Add("BN", new BNCommand(bank));
     }
 
     public string Parse(string input)
