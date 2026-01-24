@@ -2,6 +2,7 @@ using P2PBank;
 using P2PBank.Commands;
 using P2PBank.Data;
 using P2PBank.Logging;
+using P2PBank.Logging.Subscribers;
 using P2PBank.Server;
 using P2PBank.Services;
 
@@ -19,7 +20,9 @@ class Program
         Console.WriteLine($"Timeout: {config.Timeout}ms");
         Console.WriteLine();
 
-        var logger = new Logger("bank.log");
+        var logger = new Logger();
+        logger.Subscribe(new ConsoleLoggerSubscriber());
+        logger.Subscribe(new FileLoggerSubscriber("bank.log"));
         logger.LogInfo("Starting P2P Bank Node...");
 
         // database setup

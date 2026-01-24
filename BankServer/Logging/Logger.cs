@@ -1,33 +1,20 @@
+using P2PBank.Logging.Subscribers;
+
 namespace P2PBank.Logging;
 
 public class Logger
 {
-    private string _logFile;
-    private object _lock = new object();
+    private List<ILoggerSubscriber> _subscribers = new List<ILoggerSubscriber>();
 
-    public Logger(string logFile = "bank.log")
+    public Logger()
     {
-        _logFile = logFile;
     }
 
     public void Log(string msg)
     {
-        string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-        string line = "[" + timestamp + "] " + msg;
-
-        Console.WriteLine(line);
-
-        // also write to file
-        lock(_lock)
+        foreach (var subscriber in _subscribers)
         {
-            try
-            {
-                File.AppendAllText(_logFile, line + "\n");
-            }
-            catch
-            {
-                // whatever, if file write fails just continue
-            }
+            subscriber.Log(msg);
         }
     }
 
@@ -53,5 +40,10 @@ public class Logger
             Log("[CONN] Client connected: " + clientIp);
         else
             Log("[CONN] Client disconnected: " + clientIp);
+    }
+
+    public void Subscribe(ILoggerSubscriber subscriber)
+    {
+        _subscribers.Add(subscriber);
     }
 }
