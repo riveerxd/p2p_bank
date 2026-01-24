@@ -1,5 +1,5 @@
-bin/
-obj/
-*.log
 .vs/
+*.log
 *.user
+*.DS_Store
+.vscode/
