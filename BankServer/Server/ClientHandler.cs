@@ -2,6 +2,7 @@ using System.Net.Sockets;
 using System.Text;
 using P2PBank.Commands;
 using P2PBank.Logging;
+using P2PBank.Logging.Subscribers;
 
 namespace P2PBank.Server;
 
@@ -35,7 +36,7 @@ public class ClientHandler
             var writer = new StreamWriter(stream, Encoding.UTF8);
             writer.AutoFlush = true;
 
-            while(_client.Connected)
+            while (_client.Connected)
             {
                 string? line = null;
 
@@ -43,20 +44,33 @@ public class ClientHandler
                 {
                     line = reader.ReadLine();
                 }
-                catch(IOException)
+                catch (IOException)
                 {
                     // timeout probably
                     break;
                 }
 
-                if(line == null)
+                if (line == null)
                     break;
 
-                // parse and execute command
-                string response = _parser.Parse(line);
-                _logger.LogCommand(clientIp, line, response);
+                // Not ideal!
+                bool isListener = false;
 
-                writer.WriteLine(response);
+                if (line.Trim() == "LISTENER")
+                {
+                    isListener = true;
+                    _logger.LogInfo("Listener connected: " + clientIp);
+                    _logger.Subscribe(new StreamLoggerSubscriber(writer));
+                }
+
+                // parse and execute command
+                if (!isListener)
+                {
+                    string response = _parser.Parse(line);
+                    _logger.LogCommand(clientIp, line, response);
+
+                    writer.WriteLine(response);
+                }
             }
 
             // cleanup
@@ -64,7 +78,7 @@ public class ClientHandler
             writer.Close();
             stream.Close();
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             _logger.LogError("Error handling client " + clientIp + ": " + ex.Message);
         }

@@ -10,6 +10,8 @@ public class FileLoggerSubscriber : ILoggerSubscriber
         _logFile = logFile;
     }
 
+    public bool IsDisposed => false;
+
     public void Log(string message)
     {
         string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");

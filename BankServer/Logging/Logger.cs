@@ -4,7 +4,8 @@ namespace P2PBank.Logging;
 
 public class Logger
 {
-    private List<ILoggerSubscriber> _subscribers = new List<ILoggerSubscriber>();
+    private HashSet<ILoggerSubscriber> _subscribers = new HashSet<ILoggerSubscriber>();
+    private readonly object _lock = new object();
 
     public Logger()
     {
@@ -12,9 +13,26 @@ public class Logger
 
     public void Log(string msg)
     {
-        foreach (var subscriber in _subscribers)
+        lock (_lock)
         {
-            subscriber.Log(msg);
+            var disposed = new LinkedList<ILoggerSubscriber>();
+            Console.WriteLine(_subscribers.Count);
+            foreach (var subscriber in _subscribers)
+            {
+                if (subscriber.IsDisposed)
+                {
+                    disposed.AddLast(subscriber);
+                }
+                else
+                {
+                    subscriber.Log(msg);
+                }
+            }
+
+            foreach (var subscriber in disposed)
+            {
+                _subscribers.Remove(subscriber);
+            }
         }
     }
 
@@ -36,7 +54,7 @@ public class Logger
 
     public void LogConnection(string clientIp, bool connected)
     {
-        if(connected)
+        if (connected)
             Log("[CONN] Client connected: " + clientIp);
         else
             Log("[CONN] Client disconnected: " + clientIp);

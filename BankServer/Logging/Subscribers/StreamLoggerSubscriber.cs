@@ -3,6 +3,7 @@ namespace P2PBank.Logging.Subscribers;
 public class StreamLoggerSubscriber : ILoggerSubscriber
 {
     private StreamWriter _writer;
+    private bool _disposed = false;
 
     public StreamLoggerSubscriber(StreamWriter stream)
     {
@@ -10,8 +11,17 @@ public class StreamLoggerSubscriber : ILoggerSubscriber
         _writer.AutoFlush = true;
     }
 
+    public bool IsDisposed => _disposed || _writer == null || _writer.BaseStream == null || !_writer.BaseStream.CanWrite;
+
     public void Log(string message)
     {
-        if (_writer.BaseStream != null && _writer.BaseStream.CanWrite) _writer.WriteLine(message);
+        try
+        {
+            _writer.WriteLine(message);
+        }
+        catch (IOException)
+        {
+            _disposed = true;
+        }
     }
 }
