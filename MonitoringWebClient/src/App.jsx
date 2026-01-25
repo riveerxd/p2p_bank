@@ -1,11 +1,11 @@
 import './App.css'
-import { Log } from './components/log/Log'
+import { LogContainer } from './components/logContainer/LogContainer'
 
 function App() {
 
   return (
     <>
-      <Log message="This is a log message." />
+      <LogContainer />
     </>
   )
 }

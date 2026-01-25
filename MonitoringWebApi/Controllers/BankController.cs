@@ -30,6 +30,10 @@ public class BankController : ControllerBase
         if (HttpContext.WebSockets.IsWebSocketRequest)
         {
             using var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
+
+            var initMessage = Encoding.UTF8.GetBytes("Connected!\n");
+            await webSocket.SendAsync(new ArraySegment<byte>(initMessage), WebSocketMessageType.Text, true, CancellationToken.None);
+
             var reader = await _bankConnectionService.GetLogStreamReader();
             
             try

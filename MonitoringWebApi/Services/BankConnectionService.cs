@@ -2,7 +2,7 @@ using System.Net.Sockets;
 
 namespace MonitoringWebApi.Services;
 
-public class BankConnectionService : IBankConnectionService
+public class BankConnectionService : IBankConnectionService, IDisposable
 {
     private readonly string _host;
     private readonly int _port;
@@ -15,12 +15,12 @@ public class BankConnectionService : IBankConnectionService
         _port = port;
     }
 
-    private void InitializeClient()
+    private async Task InitializeClient()
     {
         if (_tcpClient == null || !_tcpClient.Connected)
         {
             _tcpClient = new TcpClient();
-            _tcpClient.Connect(_host, _port);
+            await _tcpClient.ConnectAsync(_host, _port);
         }
     }
 
@@ -28,7 +28,7 @@ public class BankConnectionService : IBankConnectionService
     {
         if (_tcpClient == null)
         {
-            InitializeClient();
+            await InitializeClient();
         }
         if (_tcpClient == null)
         {
@@ -46,17 +46,23 @@ public class BankConnectionService : IBankConnectionService
     {
         if (_tcpClient == null)
         {
-            InitializeClient();
+            await InitializeClient();
         }
         if (_tcpClient == null)
         {
             throw new InvalidOperationException("TCP client could not be initialized.");
         }
-        using var networkStream = _tcpClient.GetStream();
+        var networkStream = _tcpClient.GetStream();
 
-        using var writer = new StreamWriter(networkStream) { AutoFlush = true };
+        var writer = new StreamWriter(networkStream) { AutoFlush = true };
         await writer.WriteLineAsync("LISTENER");
         
         return new StreamReader(networkStream);
+    }
+
+    public void Dispose()
+    {
+        _tcpClient?.GetStream().Close();
+        _tcpClient?.Close();
     }
 }
