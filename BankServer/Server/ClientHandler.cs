@@ -13,15 +13,18 @@ public class ClientHandler
     private Logger _logger;
     private int _timeout;
 
-    public ClientHandler(TcpClient client, CommandParser parser, Logger logger, int timeout)
+    private TcpBankServer _server;
+
+    public ClientHandler(TcpClient client, CommandParser parser, Logger logger, int timeout, TcpBankServer server)
     {
         _client = client;
         _parser = parser;
+        _server = server;
         _logger = logger;
         _timeout = timeout;
     }
 
-    public void Handle()
+    public async Task Handle(CancellationToken cancellationToken = default)
     {
         string clientIp = _client.Client.RemoteEndPoint?.ToString() ?? "unknown";
         _logger.LogConnection(clientIp, true);
@@ -42,11 +45,15 @@ public class ClientHandler
 
                 try
                 {
-                    line = reader.ReadLine();
+                    line = await reader.ReadLineAsync(cancellationToken);
                 }
                 catch (IOException)
                 {
                     // timeout probably
+                    break;
+                }
+                catch (OperationCanceledException)
+                {
                     break;
                 }
 
@@ -54,17 +61,23 @@ public class ClientHandler
                     break;
 
                 // Not ideal!
-                bool isListener = false;
+                bool specialCommand = false;
 
                 if (line.Trim() == "LISTENER")
                 {
-                    isListener = true;
+                    specialCommand = true;
                     _logger.LogInfo("Listener connected: " + clientIp);
                     _logger.Subscribe(new StreamLoggerSubscriber(writer));
                 }
+                else if (line.Trim() == "SHUTDOWN")
+                {
+                    specialCommand = true;
+                    _logger.LogInfo("Shutdown command received from: " + clientIp);
+                    _server.Stop();
+                }
 
                 // parse and execute command
-                if (!isListener)
+                if (!specialCommand)
                 {
                     string response = _parser.Parse(line);
                     _logger.LogCommand(clientIp, line, response);

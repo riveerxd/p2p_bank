@@ -16,7 +16,6 @@ public class Logger
         lock (_lock)
         {
             var disposed = new LinkedList<ILoggerSubscriber>();
-            Console.WriteLine(_subscribers.Count);
             foreach (var subscriber in _subscribers)
             {
                 if (subscriber.IsDisposed)
