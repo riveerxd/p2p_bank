@@ -1,3 +1,5 @@
+using System.Net.WebSockets;
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using MonitoringWebApi.Services;
 
@@ -20,5 +22,43 @@ public class BankController : ControllerBase
     public async Task Shutdown()
     {
         await _bankConnectionService.ShutdownServerAsync();
+    }
+
+    [HttpGet("/log", Name = "Log")]
+    public async Task Log()
+    {
+        if (HttpContext.WebSockets.IsWebSocketRequest)
+        {
+            using var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
+            var reader = await _bankConnectionService.GetLogStreamReader();
+            
+            try
+            {
+                while (reader.BaseStream.CanRead && webSocket.State == WebSocketState.Open)
+                {
+                    var line = await reader.ReadLineAsync();
+                    if (line == null)
+                    {
+                        break;
+                    }
+
+                    var buffer = Encoding.UTF8.GetBytes(line + "\n");
+                    var segment = new ArraySegment<byte>(buffer);
+                    if (webSocket.State != WebSocketState.Open)
+                    {
+                        break;
+                    }
+                    await webSocket.SendAsync(segment, WebSocketMessageType.Text, true, CancellationToken.None);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while streaming logs");
+            }
+        }
+        else
+        {
+            HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+        }
     }
 }
