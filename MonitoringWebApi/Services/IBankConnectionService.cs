@@ -1,6 +1,6 @@
 namespace MonitoringWebApi.Services;
 
-public interface IConnectionService
+public interface IBankConnectionService
 {
     Task ShutdownServerAsync();
     Task<StreamReader> GetLogStreamReader();

@@ -2,7 +2,7 @@ using System.Net.Sockets;
 
 namespace MonitoringWebApi.Services;
 
-public class BankConnectionService : IConnectionService
+public class BankConnectionService : IBankConnectionService
 {
     private readonly string _host;
     private readonly int _port;
