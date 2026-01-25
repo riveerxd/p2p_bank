@@ -56,13 +56,23 @@ public class BankConnectionService : IBankConnectionService, IDisposable
 
         var writer = new StreamWriter(networkStream) { AutoFlush = true };
         await writer.WriteLineAsync("LISTENER");
-        
+
         return new StreamReader(networkStream);
     }
 
     public void Dispose()
     {
-        _tcpClient?.GetStream().Close();
-        _tcpClient?.Close();
+        try
+        {
+            _tcpClient?.GetStream().Close();
+        }
+        catch
+        {
+
+        }
+        finally
+        {
+            _tcpClient?.Close();
+        }
     }
 }

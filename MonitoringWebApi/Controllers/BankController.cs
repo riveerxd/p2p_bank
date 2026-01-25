@@ -11,11 +11,20 @@ public class BankController : ControllerBase
 {
     private readonly ILogger<BankController> _logger;
     private readonly IBankConnectionService _bankConnectionService;
+    private readonly IHostApplicationLifetime _appLifetime;
 
-    public BankController(ILogger<BankController> logger, IBankConnectionService bankConnectionService)
+    private readonly CancellationTokenSource _cts = new();
+
+    public BankController(ILogger<BankController> logger, IBankConnectionService bankConnectionService, IHostApplicationLifetime appLifetime)
     {
         _logger = logger;
         _bankConnectionService = bankConnectionService;
+        _appLifetime = appLifetime;
+
+        _appLifetime.ApplicationStopping.Register(() =>
+        {
+            _cts.Cancel();
+        });
     }
 
     [HttpGet("/shutdown", Name = "Shutdown")]
@@ -38,9 +47,17 @@ public class BankController : ControllerBase
             
             try
             {
-                while (reader.BaseStream.CanRead && webSocket.State == WebSocketState.Open)
+                while (reader.BaseStream.CanRead && webSocket.State == WebSocketState.Open && !_cts.Token.IsCancellationRequested)
                 {
-                    var line = await reader.ReadLineAsync();
+                    string? line;
+                    try
+                    {
+                        line = await reader.ReadLineAsync(_cts.Token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
                     if (line == null)
                     {
                         break;
