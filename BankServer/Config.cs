@@ -5,7 +5,7 @@ namespace P2PBank;
 public class Config
 {
     public int Port { get; set; } = 65525;
-    public int Timeout { get; set; } = 5000;
+    public int Timeout { get; set; } = 30000;
     public string IpAddress { get; set; } = "";
     public int RemotePort { get; set; } = 65525; // port for connecting to other banks
 
