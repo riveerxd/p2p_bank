@@ -1,47 +1,53 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
-let socket;
+// Keep the socket instance outside or in a ref to persist across renders
+let socket = null;
 
 export default function useSocket() {
     const [isConnected, setConnected] = useState(false);
+    const reconnectTimeoutRef = useRef(null);
 
-    const openCallback = () => setConnected(true);
-    const closeCallback = () => {
-        setConnected(false);
-        reconnect();
-    }
+    const connect = useCallback(() => {
+        if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+            return;
+        }
 
-    function connect() {
         socket = new WebSocket(import.meta.env.VITE_WS_URL);
-        socket.addEventListener('open', openCallback);
-        socket.addEventListener('close', closeCallback);
-    }
 
-    function reconnect() {
-        setTimeout(() => {
-            connect();
-        }, import.meta.env.VITE_RECONNECT_DELAY || 3000);
-    }
+        socket.onopen = () => {
+            console.log("WebSocket Connected");
+            setConnected(true);
+        };
 
-    if (!socket || socket.readyState === WebSocket.CLOSED) {
+        socket.onclose = () => {
+            setConnected(false);
+            console.log("WebSocket disconnected, attempting to reconnect...");
+            
+            if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+            
+            reconnectTimeoutRef.current = setTimeout(() => {
+                connect();
+            }, import.meta.env.VITE_RECONNECT_DELAY || 3000);
+        };
+
+        socket.onerror = (err) => {
+            console.error("WebSocket Error:", err);
+            socket.close();
+        };
+    }, []);
+
+    useEffect(() => {
         connect();
-    }
+        
+        return () => {
+            if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+        };
+    }, [connect]);
 
-    const onOpen = (callback) => {
-        socket.addEventListener('open', callback);
-    }
-
-    const onMessage = (callback) => {
-        socket.addEventListener('message', callback);
-    }
-
-    const removeOnMessage = (callback) => {
-        socket.removeEventListener('message', callback);
-    }
-
-    const onClose = (callback) => {
-        socket.addEventListener('close', callback);
-    }
+    const onOpen = useCallback((callback) => socket?.addEventListener('open', callback), []);
+    const onMessage = useCallback((callback) => socket?.addEventListener('message', callback), []);
+    const removeOnMessage = useCallback((callback) => socket?.removeEventListener('message', callback), []);
+    const onClose = useCallback((callback) => socket?.addEventListener('close', callback), []);
 
     return {
         isConnected,
@@ -49,5 +55,5 @@ export default function useSocket() {
         onMessage,
         removeOnMessage,
         onClose
-    }
+    };
 }

@@ -58,3 +58,8 @@ button:hover {
 button:active {
   background-color: var(--accent-pressed);
 }
+
+button:disabled {
+  background-color: var(--fg-disabled);
+  cursor: not-allowed;
+}

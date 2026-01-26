@@ -1,7 +1,9 @@
+using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using MonitoringWebApi.Services;
+using MonitoringWebApi.Stream;
 
 namespace MonitoringWebApi.Controllers;
 
@@ -30,7 +32,9 @@ public class BankController : ControllerBase
     [HttpGet("/shutdown", Name = "Shutdown")]
     public async Task Shutdown()
     {
+        _logger.LogInformation("Shutdown requested via API");
         await _bankConnectionService.ShutdownServerAsync();
+        _logger.LogInformation("Shutdown request forwarded to bank server");
     }
 
     [HttpGet("/log", Name = "Log")]
@@ -43,10 +47,10 @@ public class BankController : ControllerBase
             var initMessage = Encoding.UTF8.GetBytes("Connected!\n");
             await webSocket.SendAsync(new ArraySegment<byte>(initMessage), WebSocketMessageType.Text, true, CancellationToken.None);
 
-            using var reader = await _bankConnectionService.GetLogStreamReader();
-            
+            TcpClientStream? reader = null;
             try
             {
+                reader = await _bankConnectionService.GetLogStreamReader();
                 while (reader.CanRead && webSocket.State == WebSocketState.Open && !_cts.Token.IsCancellationRequested)
                 {
                     string? line;
@@ -73,9 +77,17 @@ public class BankController : ControllerBase
                     await webSocket.SendAsync(segment, WebSocketMessageType.Text, true, CancellationToken.None);
                 }
             }
+            catch (SocketException)
+            {
+                _logger.LogError("Unable to connect to bank server for log streaming");
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error while streaming logs");
+            }
+            finally
+            {
+                reader?.Dispose();
             }
         }
         else
