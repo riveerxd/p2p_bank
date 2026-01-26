@@ -174,6 +174,17 @@ Database connection and repository pattern reused from previous project:
 - `DbConnection.cs` - connection handling based on [kanban_db](https://github.com/riveerxd/kanban_db)
 - `AccountRepository.cs` - CRUD operations pattern from [kanban_db](https://github.com/riveerxd/kanban_db)
 - Compression - Compression abstraction system from [jtar](https://github.com/koubekj1/portfolio/tree/main/jtar)
----
 
+## Future project goals
+The project will be expanded upon in separate iterations
+### Planned features
+The functionalities added in the coming iterations may include the following
+- Login - The monitoring website will ask for credentials upon entering
+- User roles - Different user roles on the website will be able to use different functions
+- Encryption - Communication between the bank server and the monitoring server will be encrypted using matching private keys
+- Authorization - The SHUTDOWN and LISTENER commands will require knowledge of the private key
+- Fund transfers - Transfering funds between accounts
+- Account credentials - Fund transfers, withdrawals and deposits will require a password 
+
+---
 school project btw
