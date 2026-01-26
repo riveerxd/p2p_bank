@@ -1,4 +1,4 @@
-namespace Jtar.Compressor;
+namespace Compression;
 
 /// <summary>
 /// Interface for compression and decompression functionality.

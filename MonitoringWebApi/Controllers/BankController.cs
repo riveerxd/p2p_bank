@@ -1,6 +1,7 @@
 using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text;
+using Compression;
 using Microsoft.AspNetCore.Mvc;
 using MonitoringWebApi.Services;
 using MonitoringWebApi.Stream;
@@ -56,8 +57,11 @@ public class BankController : ControllerBase
                     string? line;
                     try
                     {
-                        line = await reader.GetStream().ReadLineAsync(_cts.Token);
-                        _logger.LogInformation($"Received log: {line}");
+                        var rawLine = await reader.GetStream().ReadLineAsync(_cts.Token);
+                        var decodedBytes = Convert.FromBase64String(rawLine ?? "");
+                        var decompressedBytes = new ZstdCompressor().Decompress(decodedBytes);
+                        line = Encoding.UTF8.GetString(decompressedBytes);
+                        _logger.LogInformation($"Received log: {Encoding.UTF8.GetString(decompressedBytes)}");
                     }
                     catch (OperationCanceledException)
                     {

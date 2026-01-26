@@ -1,5 +1,6 @@
 using System.Net.Sockets;
 using System.Text;
+using Compression;
 using P2PBank.Commands;
 using P2PBank.Logging;
 using P2PBank.Logging.Subscribers;
@@ -74,7 +75,7 @@ public class ClientHandler
                     //_client.ReceiveTimeout = _timeout;
                     //_client.SendTimeout = _timeout;
                     _logger.LogInfo("Listener connected: " + clientIp);
-                    _logger.Subscribe(new StreamLoggerSubscriber(writer));
+                    _logger.Subscribe(new CompressedStreamLoggerSubscriber(writer, new ZstdCompressor()));
                 }
                 else if (line.Trim() == "SHUTDOWN")
                 {
