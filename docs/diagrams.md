@@ -133,7 +133,7 @@ flowchart TD
 
     C --> Console
     F --> bank.log
-    S --> TCP Stream
+    S --> TCPStream
 ```
 
 When something calls `logger.LogInfo("whatever")`, all subscribers get notified. The StreamLoggerSubscriber is used for the monitoring - it writes to the TCP stream that the API is reading from.
