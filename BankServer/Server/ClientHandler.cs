@@ -31,8 +31,8 @@ public class ClientHandler
 
         try
         {
-            _client.ReceiveTimeout = _timeout;
-            _client.SendTimeout = _timeout;
+            //_client.ReceiveTimeout = _timeout;
+            //_client.SendTimeout = _timeout;
 
             var stream = _client.GetStream();
             var reader = new StreamReader(stream, Encoding.UTF8);
@@ -45,7 +45,11 @@ public class ClientHandler
 
                 try
                 {
-                    line = await reader.ReadLineAsync(cancellationToken);
+                    var task = reader.ReadLineAsync();
+                    bool isComplete = task.Wait(_timeout, cancellationToken);
+                    if (!isComplete)
+                        throw new IOException("Read timeout");
+                    line = task.Result;
                 }
                 catch (IOException)
                 {
@@ -66,6 +70,9 @@ public class ClientHandler
                 if (line.Trim() == "LISTENER")
                 {
                     specialCommand = true;
+                    _timeout = Timeout.Infinite;
+                    //_client.ReceiveTimeout = _timeout;
+                    //_client.SendTimeout = _timeout;
                     _logger.LogInfo("Listener connected: " + clientIp);
                     _logger.Subscribe(new StreamLoggerSubscriber(writer));
                 }
