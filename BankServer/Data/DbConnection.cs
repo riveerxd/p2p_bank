@@ -2,18 +2,26 @@ using MySqlConnector;
 
 namespace P2PBank.Data;
 
-public class DbConnection
+// copied from orm_kanban, modified a bit
+public interface IDbConnectionFactory
 {
-    private string _connStr;
+    MySqlConnection GetConnection();
+    string ConnStr { get; }
+}
 
-    public DbConnection(string connectionString)
+public class DbConnection : IDbConnectionFactory
+{
+    public string ConnStr { get; }
+
+    public DbConnection(string connStr)
     {
-        _connStr = connectionString;
+        ConnStr = connStr;
     }
 
+    // creates new connection each time
     public MySqlConnection GetConnection()
     {
-        return new MySqlConnection(_connStr);
+        return new MySqlConnection(ConnStr);
     }
 
     // creates table if it doesnt exist

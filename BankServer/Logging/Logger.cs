@@ -11,7 +11,11 @@ public class Logger
     {
     }
 
-    public void Log(string msg)
+    // static versions for when you dont have the instance
+    public static void Info(string msg) => _instance?.WriteLog("[INFO] " + msg);
+    public static void Error(string msg) => _instance?.WriteLog("[ERROR] " + msg);
+
+    private void WriteLog(string msg)
     {
         lock (_lock)
         {
@@ -35,20 +39,14 @@ public class Logger
         }
     }
 
-    public void LogInfo(string msg)
-    {
-        Log("[INFO] " + msg);
-    }
-
-    public void LogError(string msg)
-    {
-        Log("[ERROR] " + msg);
-    }
+    // instance methods
+    public void Log(string msg) => WriteLog(msg);
+    public void LogInfo(string msg) => WriteLog("[INFO] " + msg);
+    public void LogError(string msg) => WriteLog("[ERROR] " + msg);
 
     public void LogCommand(string clientIp, string cmd, string response)
     {
-        // format: [CMD] ip -> command -> response
-        Log("[CMD] " + clientIp + " -> " + cmd.Trim() + " -> " + response.Trim());
+        WriteLog("[CMD] " + clientIp + " -> " + cmd.Trim() + " -> " + response.Trim());
     }
 
     public void LogConnection(string clientIp, bool connected)
@@ -56,7 +54,7 @@ public class Logger
         if (connected)
             Log("[CONN] Client connected: " + clientIp);
         else
-            Log("[CONN] Client disconnected: " + clientIp);
+            WriteLog("[CONN] Disconnected: " + clientIp);
     }
 
     public void Subscribe(ILoggerSubscriber subscriber)

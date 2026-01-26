@@ -1,4 +1,5 @@
 using P2PBank.Services;
+using P2PBank.Network;
 
 namespace P2PBank.Commands;
 
@@ -38,9 +39,13 @@ public class AWCommand : ICommand
         if(amount <= 0)
             return "ER Amount must be positive";
 
-        // TODO: proxy
+        // proxy to other bank
         if(ip != _bank.GetBankCode())
-            return "ER This bank does not handle accounts for " + ip;
+        {
+            var cfg = _bank.GetConfig();
+            string cmd = "AW " + accNum + "/" + ip + " " + amount;
+            return BankClient.SendCommand(ip, cfg.RemotePort, cmd, cfg.Timeout);
+        }
 
         var res = _bank.Withdraw(accNum, amount);
         if(res.success)

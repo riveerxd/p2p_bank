@@ -7,15 +7,18 @@ public class BankService
 {
     private readonly AccountRepository _repo;
     private readonly string _bankCode;
+    private readonly Config _config;
     private object _lock = new object(); // for thread safety
 
-    public BankService(AccountRepository repo, string bankCode)
+    public BankService(AccountRepository repo, string bankCode, Config config)
     {
         _repo = repo;
         _bankCode = bankCode;
+        _config = config;
     }
 
     public string GetBankCode() => _bankCode;
+    public Config GetConfig() => _config;
 
     public (bool success, string result) CreateAccount()
     {
@@ -51,7 +54,7 @@ public class BankService
             if(acc == null)
                 return (false, "Account not found");
 
-            // overflow check - this is important!
+            // overflow check
             if(acc.Balance > long.MaxValue - amount)
                 return (false, "Deposit would cause overflow");
 

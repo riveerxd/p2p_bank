@@ -1,10 +1,13 @@
+using DotNetEnv;
+
 namespace P2PBank;
 
 public class Config
 {
     public int Port { get; set; } = 65525;
-    public int Timeout { get; set; } = 5000;
+    public int Timeout { get; set; } = 30000;
     public string IpAddress { get; set; } = "";
+    public int RemotePort { get; set; } = 65525; // port for connecting to other banks
 
     // database config
     public string DbServer { get; set; } = "localhost";
@@ -21,9 +24,26 @@ public class Config
 
     public static Config Load(string[] args)
     {
+        // load .env file if it exists
+        if (File.Exists(".env"))
+        {
+            Env.Load();
+        }
+
         Config config = new Config();
 
-        // parse command line args
+        // load from environment variables first (from .env or system)
+        config.Port = GetEnvInt("BANK_PORT", config.Port);
+        config.Timeout = GetEnvInt("BANK_TIMEOUT", config.Timeout);
+        config.IpAddress = GetEnvString("BANK_IP", config.IpAddress);
+        config.RemotePort = GetEnvInt("BANK_REMOTE_PORT", config.RemotePort);
+        config.DbServer = GetEnvString("DB_SERVER", config.DbServer);
+        config.DbPort = GetEnvInt("DB_PORT", config.DbPort);
+        config.DbName = GetEnvString("DB_NAME", config.DbName);
+        config.DbUser = GetEnvString("DB_USER", config.DbUser);
+        config.DbPassword = GetEnvString("DB_PASSWORD", config.DbPassword);
+
+        // command line args override everything
         for(int i = 0; i < args.Length; i++)
         {
             if(args[i] == "--port" && i + 1 < args.Length)
@@ -64,6 +84,12 @@ public class Config
             {
                 config.DbPassword = args[i + 1];
             }
+            else if(args[i] == "--remote-port" && i + 1 < args.Length)
+            {
+                int rp;
+                if(int.TryParse(args[i + 1], out rp))
+                    config.RemotePort = rp;
+            }
         }
 
         // get IP if not provided
@@ -73,6 +99,23 @@ public class Config
         }
 
         return config;
+    }
+
+    static string GetEnvString(string key, string defaultVal)
+    {
+        var val = Environment.GetEnvironmentVariable(key);
+        return string.IsNullOrEmpty(val) ? defaultVal : val;
+    }
+
+    static int GetEnvInt(string key, int defaultVal)
+    {
+        var val = Environment.GetEnvironmentVariable(key);
+        if (string.IsNullOrEmpty(val)) return defaultVal;
+
+        int result;
+        if (int.TryParse(val, out result))
+            return result;
+        return defaultVal;
     }
 
     static string GetLocalIp()

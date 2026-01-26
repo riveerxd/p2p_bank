@@ -1,4 +1,5 @@
 using P2PBank.Services;
+using P2PBank.Network;
 
 namespace P2PBank.Commands;
 
@@ -38,9 +39,13 @@ public class ADCommand : ICommand
         if(amount <= 0)
             return "ER Amount must be positive";
 
-        // TODO: proxy to other bank if ip doesnt match
+        // proxy to other bank if ip doesnt match ours
         if(ip != _bank.GetBankCode())
-            return "ER This bank does not handle accounts for " + ip;
+        {
+            var cfg = _bank.GetConfig();
+            string cmd = "AD " + accNum + "/" + ip + " " + amount;
+            return BankClient.SendCommand(ip, cfg.RemotePort, cmd, cfg.Timeout);
+        }
 
         var res = _bank.Deposit(accNum, amount);
         if(res.success)
