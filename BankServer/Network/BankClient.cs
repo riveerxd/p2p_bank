@@ -45,7 +45,7 @@ public class BankClient
         {
             return "ER Cannot connect to " + ip;
         }
-        catch(Exception ex)
+        catch(Exception)
         {
             //Logger.Error("BankClient error: " + ex.Message);
             return "ER Communication error";
