@@ -53,6 +53,7 @@ public class BankController : ControllerBase
                     try
                     {
                         line = await reader.ReadLineAsync(_cts.Token);
+                        _logger.LogInformation($"Received log: {line}");
                     }
                     catch (OperationCanceledException)
                     {

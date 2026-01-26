@@ -1,31 +1,23 @@
 import styles from "./LogContainer.module.css";
 import { Log } from "../log/Log";
 import { useEffect, useState } from "react";
+import useSocket from "../../hooks/useSocket";
 
 export function LogContainer() {
     const [logs, setLogs] = useState([]);
+    const { onMessage, removeOnMessage } = useSocket();
 
     useEffect(() => {
-        const socket = new WebSocket(import.meta.env.VITE_WS_URL);
-
-        socket.onopen = () => {
-            console.log("WebSocket connection established.");
-        };
-
-        socket.onmessage = (event) => {
+        const callback = (event) => {
             const logMessage = event.data;
             setLogs((prevLogs) => [...prevLogs, logMessage]);
         };
-
-        socket.onclose = () => {
-            console.log("WebSocket connection closed.");
-        };
+        onMessage(callback);
 
         return () => {
-            socket.close();
-        };
-    }, []);
-
+            removeOnMessage(callback);
+        }
+    }, [onMessage]);
     return (
         <div className={styles.displayerContainer}>
             <h2>Logs</h2>
