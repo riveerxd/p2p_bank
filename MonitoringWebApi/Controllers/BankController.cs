@@ -43,16 +43,16 @@ public class BankController : ControllerBase
             var initMessage = Encoding.UTF8.GetBytes("Connected!\n");
             await webSocket.SendAsync(new ArraySegment<byte>(initMessage), WebSocketMessageType.Text, true, CancellationToken.None);
 
-            var reader = await _bankConnectionService.GetLogStreamReader();
+            using var reader = await _bankConnectionService.GetLogStreamReader();
             
             try
             {
-                while (reader.BaseStream.CanRead && webSocket.State == WebSocketState.Open && !_cts.Token.IsCancellationRequested)
+                while (reader.CanRead && webSocket.State == WebSocketState.Open && !_cts.Token.IsCancellationRequested)
                 {
                     string? line;
                     try
                     {
-                        line = await reader.ReadLineAsync(_cts.Token);
+                        line = await reader.GetStream().ReadLineAsync(_cts.Token);
                         _logger.LogInformation($"Received log: {line}");
                     }
                     catch (OperationCanceledException)
