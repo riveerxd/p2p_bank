@@ -20,7 +20,7 @@ export function LogContainer() {
         socket.onclose = () => {
             console.log("WebSocket connection closed.");
         };
-        
+
         return () => {
             socket.close();
         };
@@ -28,9 +28,14 @@ export function LogContainer() {
 
     return (
         <div className={styles.displayerContainer}>
-            {logs.map((log, index) => (
-                <Log key={index} message={log} />
-            ))}
+            <h2>Logs</h2>
+            <div className={styles.logsContainer}>
+                {logs.map((log, index) => (
+                    <div key={index}>
+                        <Log message={log} />
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }
