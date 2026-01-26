@@ -5,9 +5,9 @@ namespace P2PBank.Data;
 
 public class AccountRepository
 {
-    private readonly DbConnection _db;
+    private readonly IDbConnectionFactory _db;
 
-    public AccountRepository(DbConnection db)
+    public AccountRepository(IDbConnectionFactory db)
     {
         _db = db;
     }
