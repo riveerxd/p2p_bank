@@ -38,7 +38,7 @@ public class BankClient
             if(resp == null)
                 return "ER No response from " + ip;
 
-            Logger.Info("Proxy to " + ip + ": " + cmd + " -> " + resp);
+            //Logger.Info("Proxy to " + ip + ": " + cmd + " -> " + resp);
             return resp;
         }
         catch(SocketException)
@@ -47,7 +47,7 @@ public class BankClient
         }
         catch(Exception ex)
         {
-            Logger.Error("BankClient error: " + ex.Message);
+            //Logger.Error("BankClient error: " + ex.Message);
             return "ER Communication error";
         }
         finally

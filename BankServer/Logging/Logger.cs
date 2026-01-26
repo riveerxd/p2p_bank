@@ -11,10 +11,6 @@ public class Logger
     {
     }
 
-    // static versions for when you dont have the instance
-    public static void Info(string msg) => _instance?.WriteLog("[INFO] " + msg);
-    public static void Error(string msg) => _instance?.WriteLog("[ERROR] " + msg);
-
     private void WriteLog(string msg)
     {
         lock (_lock)
