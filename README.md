@@ -173,7 +173,7 @@ The API has these endpoints:
 Database connection and repository pattern reused from previous project:
 - `DbConnection.cs` - connection handling based on [kanban_db](https://github.com/riveerxd/kanban_db)
 - `AccountRepository.cs` - CRUD operations pattern from [kanban_db](https://github.com/riveerxd/kanban_db)
-
+- Compression - Compression abstraction system from [jtar](https://github.com/koubekj1/portfolio/tree/main/jtar)
 ---
 
 school project btw
