@@ -13,6 +13,9 @@ public class TcpBankServer
     private int _timeout;
     private TcpListener? _listener;
     private bool _running = false;
+    private CancellationTokenSource? _cts;
+
+    private Action _onShutdown = () => {};
 
     public TcpBankServer(int port, CommandParser parser, Logger logger, int timeout)
     {
@@ -31,17 +34,18 @@ public class TcpBankServer
         _logger.LogInfo("Bank server started on port " + _port);
 
         // main accept loop
+        _cts = new CancellationTokenSource();
         while(_running)
         {
             try
             {
                 TcpClient client = _listener.AcceptTcpClient();
 
-                // new thread for each client
-                Thread t = new Thread(() =>
+                // new thread for each client - assignment says real parallelism
+                Thread t = new Thread(async () =>
                 {
-                    var handler = new ClientHandler(client, _parser, _logger, _timeout);
-                    handler.Handle();
+                    var handler = new ClientHandler(client, _parser, _logger, _timeout, this);
+                    await handler.Handle(_cts.Token);
                 });
                 t.Start();
             }
@@ -62,5 +66,7 @@ public class TcpBankServer
         _running = false;
         _listener?.Stop();
         _logger.LogInfo("Bank server stopped");
+        _cts?.Cancel();
+        _cts = null;
     }
 }

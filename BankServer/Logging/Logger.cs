@@ -1,15 +1,14 @@
+using P2PBank.Logging.Subscribers;
+
 namespace P2PBank.Logging;
 
 public class Logger
 {
-    private static Logger? _instance;
-    private string _logFile;
-    private object _lock = new object();
+    private HashSet<ILoggerSubscriber> _subscribers = new HashSet<ILoggerSubscriber>();
+    private readonly object _lock = new object();
 
-    public Logger(string logFile = "bank.log")
+    public Logger()
     {
-        _logFile = logFile;
-        _instance = this;
     }
 
     // static versions for when you dont have the instance
@@ -18,18 +17,25 @@ public class Logger
 
     private void WriteLog(string msg)
     {
-        string time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-        string line = "[" + time + "] " + msg;
-
-        Console.WriteLine(line);
-
-        lock(_lock)
+        lock (_lock)
         {
-            try
+            var disposed = new LinkedList<ILoggerSubscriber>();
+            foreach (var subscriber in _subscribers)
             {
-                File.AppendAllText(_logFile, line + "\n");
+                if (subscriber.IsDisposed)
+                {
+                    disposed.AddLast(subscriber);
+                }
+                else
+                {
+                    subscriber.Log(msg);
+                }
             }
-            catch { }
+
+            foreach (var subscriber in disposed)
+            {
+                _subscribers.Remove(subscriber);
+            }
         }
     }
 
@@ -45,9 +51,14 @@ public class Logger
 
     public void LogConnection(string clientIp, bool connected)
     {
-        if(connected)
-            WriteLog("[CONN] Connected: " + clientIp);
+        if (connected)
+            Log("[CONN] Client connected: " + clientIp);
         else
             WriteLog("[CONN] Disconnected: " + clientIp);
+    }
+
+    public void Subscribe(ILoggerSubscriber subscriber)
+    {
+        _subscribers.Add(subscriber);
     }
 }

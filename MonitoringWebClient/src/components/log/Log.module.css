@@ -1,0 +1,8 @@
+.logContainer {
+    padding: 10px;
+    border: 1px solid black;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+    border-radius: 1em;
+    border: 1px solid var(--border-secondary);
+    background-color: var(--bg-elevated);
+}

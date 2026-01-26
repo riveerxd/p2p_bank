@@ -1,0 +1,23 @@
+.statusContainer {
+    padding: 1em;
+    border-radius: 1em;
+    border: 1px solid var(--border-primary);
+    background-color: var(--bg-secondary);
+}
+
+.elementContainer {
+    display: flex;
+    flex-direction: column;
+
+    background-color: var(--bg-elevated);
+    border-radius: 1em;
+    padding: 1em;
+    border: 1px solid var(--border-secondary);
+
+    width: fit-content;
+}
+
+p {
+    margin: 0 0;
+    padding-bottom: 0.5em;
+}

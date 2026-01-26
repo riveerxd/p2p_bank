@@ -2,6 +2,7 @@ using System.Net.Sockets;
 using System.Text;
 using P2PBank.Commands;
 using P2PBank.Logging;
+using P2PBank.Logging.Subscribers;
 
 namespace P2PBank.Server;
 
@@ -12,51 +13,84 @@ public class ClientHandler
     private Logger _logger;
     private int _timeout;
 
-    public ClientHandler(TcpClient client, CommandParser parser, Logger logger, int timeout)
+    private TcpBankServer _server;
+
+    public ClientHandler(TcpClient client, CommandParser parser, Logger logger, int timeout, TcpBankServer server)
     {
         _client = client;
         _parser = parser;
+        _server = server;
         _logger = logger;
         _timeout = timeout;
     }
 
-    public void Handle()
+    public async Task Handle(CancellationToken cancellationToken = default)
     {
         string clientIp = _client.Client.RemoteEndPoint?.ToString() ?? "unknown";
         _logger.LogConnection(clientIp, true);
 
         try
         {
-            _client.ReceiveTimeout = _timeout;
-            _client.SendTimeout = _timeout;
+            //_client.ReceiveTimeout = _timeout;
+            //_client.SendTimeout = _timeout;
 
             var stream = _client.GetStream();
             var reader = new StreamReader(stream, Encoding.UTF8);
             var writer = new StreamWriter(stream, Encoding.UTF8);
             writer.AutoFlush = true;
 
-            while(_client.Connected)
+            while (_client.Connected)
             {
                 string? line = null;
 
                 try
                 {
-                    line = reader.ReadLine();
+                    var task = reader.ReadLineAsync();
+                    bool isComplete = task.Wait(_timeout, cancellationToken);
+                    if (!isComplete)
+                        throw new IOException("Read timeout");
+                    line = task.Result;
                 }
-                catch(IOException)
+                catch (IOException)
                 {
                     // timeout probably
                     break;
                 }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
 
-                if(line == null)
+                if (line == null)
                     break;
 
-                // parse and execute command
-                string response = _parser.Parse(line);
-                _logger.LogCommand(clientIp, line, response);
+                // Not ideal!
+                bool specialCommand = false;
 
-                writer.WriteLine(response);
+                if (line.Trim() == "LISTENER")
+                {
+                    specialCommand = true;
+                    _timeout = Timeout.Infinite;
+                    //_client.ReceiveTimeout = _timeout;
+                    //_client.SendTimeout = _timeout;
+                    _logger.LogInfo("Listener connected: " + clientIp);
+                    _logger.Subscribe(new StreamLoggerSubscriber(writer));
+                }
+                else if (line.Trim() == "SHUTDOWN")
+                {
+                    specialCommand = true;
+                    _logger.LogInfo("Shutdown command received from: " + clientIp);
+                    _server.Stop();
+                }
+
+                // parse and execute command
+                if (!specialCommand)
+                {
+                    string response = _parser.Parse(line);
+                    _logger.LogCommand(clientIp, line, response);
+
+                    writer.WriteLine(response);
+                }
             }
 
             // cleanup
@@ -64,7 +98,7 @@ public class ClientHandler
             writer.Close();
             stream.Close();
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             _logger.LogError("Error handling client " + clientIp + ": " + ex.Message);
         }

@@ -1,0 +1,65 @@
+:root {
+  --bg-primary: #0F172A;
+  --bg-secondary: #111827;
+  --bg-elevated: #1E293B;
+
+  --fg-primary: #E5E7EB;
+  --fg-secondary: #9CA3AF;
+  --fg-disabled: #6B7280;
+
+  --border-primary: #1F2937;
+  --border-secondary: #374151;
+
+  --accent: #3B82F6;
+  --accent-hover: #2563EB;
+  --accent-pressed: #1D4ED8;
+
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --error: #EF4444;
+  --info: #38BDF8;
+
+  --focus: #60A5FA;
+
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--fg-secondary);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
+h1 {
+  color: var(--fg-primary) !important;
+  text-align: center;
+}
+
+h2 {
+  color: var(--fg-primary) !important;
+}
+
+button {
+  font-family: inherit;
+  background-color: var(--accent);
+  color: var(--fg-primary);
+  border: none;
+  padding: 0.5em 1em;
+  border-radius: 0.5em;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+button:hover {
+  background-color: var(--accent-hover);
+}
+
+button:active {
+  background-color: var(--accent-pressed);
+}
+
+button:disabled {
+  background-color: var(--fg-disabled);
+  cursor: not-allowed;
+}
