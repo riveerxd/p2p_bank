@@ -51,53 +51,58 @@ public class BankController : ControllerBase
             TcpClientStream? reader = null;
             try
             {
-                // retry until bank is up or client disconnects
-                while (reader == null && webSocket.State == WebSocketState.Open && !_cts.Token.IsCancellationRequested)
+                while (webSocket.State == WebSocketState.Open && !_cts.Token.IsCancellationRequested)
                 {
-                    try
+                    // retry until bank is up or client disconnects
+                    while (reader == null && webSocket.State == WebSocketState.Open && !_cts.Token.IsCancellationRequested)
                     {
-                        reader = await _bankConnectionService.GetLogStreamReader();
-                    }
-                    catch (SocketException)
-                    {
-                        _logger.LogWarning("Bank server not available, retrying in 3s...");
-                        await Task.Delay(3000, _cts.Token);
-                    }
-                }
-
-                while (reader != null && reader.CanRead && webSocket.State == WebSocketState.Open && !_cts.Token.IsCancellationRequested)
-                {
-                    string? line;
-                    string? rawLine;
-                    try
-                    {
-                        rawLine = await reader.GetStream().ReadLineAsync(_cts.Token);
-                        var decodedBytes = Convert.FromBase64String(rawLine ?? "");
-                        var decompressedBytes = new ZstdCompressor().Decompress(decodedBytes);
-                        line = Encoding.UTF8.GetString(decompressedBytes);
-                        _logger.LogInformation($"Received log: {Encoding.UTF8.GetString(decompressedBytes)}");
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        break;
-                    }
-                    if (rawLine == null)
-                    {
-                        break;
+                        try
+                        {
+                            reader = await _bankConnectionService.GetLogStreamReader();
+                        }
+                        catch (SocketException)
+                        {
+                            _logger.LogWarning("Bank server not available, retrying in 3s...");
+                            await Task.Delay(3000, _cts.Token);
+                        }
                     }
 
-                    var buffer = Encoding.UTF8.GetBytes(line + "\n");
-                    var segment = new ArraySegment<byte>(buffer);
-                    if (webSocket.State != WebSocketState.Open)
+                    // stream logs until connection drops
+                    while (reader != null && reader.CanRead && webSocket.State == WebSocketState.Open && !_cts.Token.IsCancellationRequested)
                     {
-                        break;
+                        try
+                        {
+                            var rawLine = await reader.GetStream().ReadLineAsync(_cts.Token);
+                            if (rawLine == null) break;
+
+                            var decodedBytes = Convert.FromBase64String(rawLine);
+                            var decompressedBytes = new ZstdCompressor().Decompress(decodedBytes);
+                            var line = Encoding.UTF8.GetString(decompressedBytes);
+                            _logger.LogInformation($"Received log: {line}");
+
+                            var buffer = Encoding.UTF8.GetBytes(line + "\n");
+                            if (webSocket.State != WebSocketState.Open) break;
+                            await webSocket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            break;
+                        }
+                        catch (IOException)
+                        {
+                            _logger.LogWarning("Lost connection to bank server");
+                            break;
+                        }
                     }
-                    await webSocket.SendAsync(segment, WebSocketMessageType.Text, true, CancellationToken.None);
+
+                    // bank dropped, try reconnecting
+                    reader?.Dispose();
+                    reader = null;
                 }
             }
             catch (OperationCanceledException)
             {
-                // app shutting down or client disconnected during retry
+                // shutting down
             }
             catch (Exception ex)
             {
