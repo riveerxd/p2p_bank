@@ -51,8 +51,21 @@ public class BankController : ControllerBase
             TcpClientStream? reader = null;
             try
             {
-                reader = await _bankConnectionService.GetLogStreamReader();
-                while (reader.CanRead && webSocket.State == WebSocketState.Open && !_cts.Token.IsCancellationRequested)
+                // retry until bank is up or client disconnects
+                while (reader == null && webSocket.State == WebSocketState.Open && !_cts.Token.IsCancellationRequested)
+                {
+                    try
+                    {
+                        reader = await _bankConnectionService.GetLogStreamReader();
+                    }
+                    catch (SocketException)
+                    {
+                        _logger.LogWarning("Bank server not available, retrying in 3s...");
+                        await Task.Delay(3000, _cts.Token);
+                    }
+                }
+
+                while (reader != null && reader.CanRead && webSocket.State == WebSocketState.Open && !_cts.Token.IsCancellationRequested)
                 {
                     string? line;
                     try
@@ -81,9 +94,9 @@ public class BankController : ControllerBase
                     await webSocket.SendAsync(segment, WebSocketMessageType.Text, true, CancellationToken.None);
                 }
             }
-            catch (SocketException)
+            catch (OperationCanceledException)
             {
-                _logger.LogError("Unable to connect to bank server for log streaming");
+                // app shutting down or client disconnected during retry
             }
             catch (Exception ex)
             {
