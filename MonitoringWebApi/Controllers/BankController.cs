@@ -68,9 +68,10 @@ public class BankController : ControllerBase
                 while (reader != null && reader.CanRead && webSocket.State == WebSocketState.Open && !_cts.Token.IsCancellationRequested)
                 {
                     string? line;
+                    string? rawLine;
                     try
                     {
-                        var rawLine = await reader.GetStream().ReadLineAsync(_cts.Token);
+                        rawLine = await reader.GetStream().ReadLineAsync(_cts.Token);
                         var decodedBytes = Convert.FromBase64String(rawLine ?? "");
                         var decompressedBytes = new ZstdCompressor().Decompress(decodedBytes);
                         line = Encoding.UTF8.GetString(decompressedBytes);
@@ -80,7 +81,7 @@ public class BankController : ControllerBase
                     {
                         break;
                     }
-                    if (line == null)
+                    if (rawLine == null)
                     {
                         break;
                     }
