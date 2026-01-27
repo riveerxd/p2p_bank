@@ -25,10 +25,11 @@ public class Config
     public static Config Load(string[] args)
     {
         // load .env file if it exists
+        var envPath = Path.Combine(AppContext.BaseDirectory, ".env");
         if (File.Exists(".env"))
-        {
             Env.Load();
-        }
+        else if (File.Exists(envPath))
+            Env.Load(envPath);
 
         Config config = new Config();
 
