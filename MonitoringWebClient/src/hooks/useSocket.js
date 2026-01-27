@@ -2,6 +2,18 @@ import { useState, useEffect, useCallback, useRef } from "react";
 
 let socket = null;
 
+/*window.addEventListener('beforeunload', () => {
+    if (socket) {
+        socket.close();
+    }
+});*/
+
+window.onbeforeunload = () => {
+    if (!socket) return;
+    socket.onclose = () => {};
+    socket.close();
+};
+
 export default function useSocket() {
     const [isConnected, setConnected] = useState(false);
     const [reconnectCount, setReconnectCount] = useState(0);
