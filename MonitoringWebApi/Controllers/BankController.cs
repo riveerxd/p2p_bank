@@ -62,10 +62,15 @@ public class BankController : ControllerBase
                         }
                         catch (SocketException)
                         {
+                            await webSocket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes("CONNECTION_CLOSED" + "\n")), WebSocketMessageType.Text, true, CancellationToken.None);
                             _logger.LogWarning("Bank server not available, retrying in 3s...");
                             await Task.Delay(3000, _cts.Token);
                         }
                     }
+
+                    // let the client know hes connected
+                    if (webSocket.State == WebSocketState.Open)
+                        await webSocket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes("CONNECTION_ESTABLISHED" + "\n")), WebSocketMessageType.Text, true, CancellationToken.None);
 
                     // stream logs until connection drops
                     while (reader != null && reader.CanRead && webSocket.State == WebSocketState.Open && !_cts.Token.IsCancellationRequested)
@@ -91,6 +96,8 @@ public class BankController : ControllerBase
                         catch (IOException)
                         {
                             _logger.LogWarning("Lost connection to bank server");
+                            if (webSocket.State == WebSocketState.Open)
+                                await webSocket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes("CONNECTION_CLOSED" + "\n")), WebSocketMessageType.Text, true, CancellationToken.None);
                             break;
                         }
                     }

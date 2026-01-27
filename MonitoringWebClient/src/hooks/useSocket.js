@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
-// Keep the socket instance outside or in a ref to persist across renders
 let socket = null;
 
 export default function useSocket() {
@@ -8,8 +7,26 @@ export default function useSocket() {
     const [reconnectCount, setReconnectCount] = useState(0);
     const reconnectTimeoutRef = useRef(null);
 
+    const messageHandlersRef = useRef(new Set());
+
+    const handleIncomingMessage = useCallback((event) => {
+        if (event.data === "CONNECTION_ESTABLISHED\n") setConnected(true);
+        else if (event.data === "CONNECTION_CLOSED\n") setConnected(false);
+        
+        // Broadcast to all subscribers in the Ref
+        messageHandlersRef.current.forEach(handler => {
+            try {
+                handler(event);
+            } catch (err) {
+                console.error("Error in message handler:", err);
+            }
+        });
+    }, []);
+
     const connect = useCallback(() => {
         if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+            socket.removeEventListener('message', handleIncomingMessage);
+            socket.addEventListener('message', handleIncomingMessage);
             return;
         }
 
@@ -17,13 +34,17 @@ export default function useSocket() {
 
         socket.onopen = () => {
             console.log("WebSocket Connected");
-            setConnected(true);
+            
+            socket.addEventListener('message', handleIncomingMessage);
+            
             setReconnectCount(prev => prev + 1);
         };
 
         socket.onclose = () => {
             setConnected(false);
             console.log("WebSocket disconnected, attempting to reconnect...");
+            
+            socket.removeEventListener('message', handleIncomingMessage);
 
             if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
 
@@ -36,21 +57,39 @@ export default function useSocket() {
             console.error("WebSocket Error:", err);
             socket.close();
         };
-    }, []);
+    }, [handleIncomingMessage]);
 
     useEffect(() => {
         connect();
 
         return () => {
             if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+            if (socket) {
+                socket.removeEventListener('message', handleIncomingMessage);
+            }
         };
-    }, [connect]);
+    }, [connect, handleIncomingMessage]);
+    
+    const onMessage = useCallback((callback) => {
+        messageHandlersRef.current.add(callback);
+        return () => messageHandlersRef.current.delete(callback); 
+    }, []);
 
-    // need this so listeners reattach after reconnect
-    const onOpen = useCallback((callback) => socket?.addEventListener('open', callback), [reconnectCount]);
-    const onMessage = useCallback((callback) => socket?.addEventListener('message', callback), [reconnectCount]);
-    const removeOnMessage = useCallback((callback) => socket?.removeEventListener('message', callback), [reconnectCount]);
-    const onClose = useCallback((callback) => socket?.addEventListener('close', callback), [reconnectCount]);
+    const removeOnMessage = useCallback((callback) => {
+        messageHandlersRef.current.delete(callback);
+    }, []);
+
+    const onOpen = useCallback((callback) => {
+        const handler = () => callback();
+        socket?.addEventListener('open', handler);
+        return () => socket?.removeEventListener('open', handler);
+    }, []);
+
+    const onClose = useCallback((callback) => {
+         const handler = () => callback();
+        socket?.addEventListener('close', handler);
+        return () => socket?.removeEventListener('close', handler);
+    }, []);
 
     return {
         isConnected,

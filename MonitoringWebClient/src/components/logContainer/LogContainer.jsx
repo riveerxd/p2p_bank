@@ -5,19 +5,18 @@ import useSocket from "../../hooks/useSocket";
 
 export function LogContainer() {
     const [logs, setLogs] = useState([]);
-    const { onMessage, removeOnMessage } = useSocket();
+    const { isConnected, onMessage } = useSocket();
 
     useEffect(() => {
         const callback = (event) => {
             const logMessage = event.data;
+            if (logMessage !== "CONNECTION_ESTABLISHED\n" && logMessage !== "CONNECTION_CLOSED\n")
             setLogs((prevLogs) => [...prevLogs, logMessage]);
         };
-        onMessage(callback);
+        const unsub = onMessage(callback);
 
-        return () => {
-            removeOnMessage(callback);
-        }
-    }, [onMessage]);
+        return unsub;
+    }, [isConnected]);
     return (
         <div className={styles.displayerContainer}>
             <h2>Logs</h2>
