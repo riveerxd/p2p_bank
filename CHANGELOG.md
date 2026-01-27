@@ -1,5 +1,36 @@
 # Changelog
 
+## 2026-01-27 - Lukáš Hrehor
+* Fix websocket listenerů po reconnectu
+* Retry logika pro bank connection v log endpointu
+* Fix .env nenačítání z jiné složky
+* Fix reconnectu monitoringu při restartu bank serveru
+
+## 2026-01-27 - Jan Koubek
+* Fix spamování logů při vypnutí bank nodu
+
+## 2026-01-26 - Jan Koubek
+* Komprese TCP listener komunikace
+* Shutdown na webu
+* Fix multithreadingu BankConnectionService
+* WebSocket hook + bugfixy
+* Vizuální vylepšení webu
+* Fix timeout bugu
+* Dokumentace
+
+## 2026-01-26 - Lukáš Hrehor
+* .env config podpora
+* Timeout na 30 sec
+* Interface pro DB connection
+* Readme a docs
+
+## 2026-01-25 - Jan Koubek
+* WebSocket pro logy v API i na webu
+* Log komponenta
+* Připojení k bank serveru v API
+* Init web client projektu
+* Fix odpojování klientů
+
 ## 2026-01-25 - Lukáš Hrehor
 * Proxy pro AD, AW, AB
 
@@ -7,6 +38,8 @@
 * BankClient pro proxy requesty
 
 ## 2026-01-24 - Jan Koubek
+* Init Web API projektu
+* Logger subscriber systém
 * Přesun projektu do vlastní složky
 
 ## 2026-01-23 - Lukáš Hrehor
