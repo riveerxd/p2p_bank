@@ -43,8 +43,11 @@ public class ADCommand : ICommand
         if(ip != _bank.GetBankCode())
         {
             var cfg = _bank.GetConfig();
+            int port = BankClient.FindBankPort(ip);
+            if(port == -1)
+                return "ER No bank found on " + ip;
             string cmd = "AD " + accNum + "/" + ip + " " + amount;
-            return BankClient.SendCommand(ip, cfg.RemotePort, cmd, cfg.Timeout);
+            return BankClient.SendCommand(ip, port, cmd, cfg.Timeout);
         }
 
         var res = _bank.Deposit(accNum, amount);

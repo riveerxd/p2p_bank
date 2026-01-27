@@ -36,8 +36,11 @@ public class ABCommand : ICommand
         if(ip != _bank.GetBankCode())
         {
             var cfg = _bank.GetConfig();
+            int port = BankClient.FindBankPort(ip);
+            if(port == -1)
+                return "ER No bank found on " + ip;
             string cmd = "AB " + accNum + "/" + ip;
-            return BankClient.SendCommand(ip, cfg.RemotePort, cmd, cfg.Timeout);
+            return BankClient.SendCommand(ip, port, cmd, cfg.Timeout);
         }
 
         var res = _bank.GetBalance(accNum);
