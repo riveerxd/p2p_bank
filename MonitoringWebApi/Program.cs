@@ -1,4 +1,5 @@
 using MonitoringWebApi.Services;
+using DotNetEnv;
 
 namespace MonitoringWebApi;
 
@@ -6,6 +7,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
+        DotNetEnv.Env.Load();
         var builder = WebApplication.CreateBuilder(args);
 
         // Add services to the container.
@@ -19,7 +21,8 @@ public class Program
         {
             var host = builder.Configuration.GetSection("Server").GetValue<string>("Host") ?? throw new InvalidOperationException("Server host configuration is missing");
             var port = builder.Configuration.GetSection("Server").GetValue<int?>("Port") ?? throw new InvalidOperationException("Server port configuration is missing");
-            return new BankConnectionService(host, port);
+            var privateKey = Environment.GetEnvironmentVariable("PRIVATE_KEY") ?? "";
+            return new BankConnectionService(host, port, privateKey);
         });
 
         var app = builder.Build();

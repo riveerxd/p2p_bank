@@ -1,6 +1,8 @@
 using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text;
+using System.Security.Cryptography;
+using System.IO;
 using Compression;
 using Microsoft.AspNetCore.Mvc;
 using MonitoringWebApi.Services;
@@ -15,6 +17,7 @@ public class BankController : ControllerBase
     private readonly ILogger<BankController> _logger;
     private readonly IBankConnectionService _bankConnectionService;
     private readonly IHostApplicationLifetime _appLifetime;
+    private readonly byte[] _key;
 
     private readonly CancellationTokenSource _cts = new();
 
@@ -23,6 +26,12 @@ public class BankController : ControllerBase
         _logger = logger;
         _bankConnectionService = bankConnectionService;
         _appLifetime = appLifetime;
+
+        var privateKey = Environment.GetEnvironmentVariable("PRIVATE_KEY") ?? "";
+        using (var sha256 = SHA256.Create())
+        {
+            _key = sha256.ComputeHash(Encoding.UTF8.GetBytes(privateKey));
+        }
 
         _appLifetime.ApplicationStopping.Register(() =>
         {
@@ -80,8 +89,28 @@ public class BankController : ControllerBase
                             var rawLine = await reader.GetStream().ReadLineAsync(_cts.Token);
                             if (rawLine == null) break;
 
-                            var decodedBytes = Convert.FromBase64String(rawLine);
-                            var decompressedBytes = new ZstdCompressor().Decompress(decodedBytes);
+                            var encryptedBytes = Convert.FromBase64String(rawLine);
+                            
+                            // Decrypt
+                            byte[] decryptedBytes;
+                            using (var aes = Aes.Create())
+                            {
+                                aes.Key = _key;
+                                var iv = new byte[16];
+                                Array.Copy(encryptedBytes, 0, iv, 0, 16);
+                                aes.IV = iv;
+
+                                using (var decryptor = aes.CreateDecryptor(aes.Key, aes.IV))
+                                using (var msDecrypt = new MemoryStream(encryptedBytes, 16, encryptedBytes.Length - 16))
+                                using (var csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
+                                using (var msPlain = new MemoryStream())
+                                {
+                                    csDecrypt.CopyTo(msPlain);
+                                    decryptedBytes = msPlain.ToArray();
+                                }
+                            }
+
+                            var decompressedBytes = new ZstdCompressor().Decompress(decryptedBytes);
                             var line = Encoding.UTF8.GetString(decompressedBytes);
                             _logger.LogInformation($"Received log: {line}");
 

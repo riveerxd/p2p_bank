@@ -6,6 +6,7 @@ public class Config
 {
     public int Port { get; set; } = 65525;
     public int Timeout { get; set; } = 30000;
+    public string PrivateKey { get; set; } = "";
     public string IpAddress { get; set; } = "";
     public int RemotePort { get; set; } = 65525; // port for connecting to other banks
 
@@ -38,6 +39,7 @@ public class Config
         config.Timeout = GetEnvInt("BANK_TIMEOUT", config.Timeout);
         config.IpAddress = GetEnvString("BANK_IP", config.IpAddress);
         config.RemotePort = GetEnvInt("BANK_REMOTE_PORT", config.RemotePort);
+        config.PrivateKey = GetEnvString("PRIVATE_KEY", config.PrivateKey);
         config.DbServer = GetEnvString("DB_SERVER", config.DbServer);
         config.DbPort = GetEnvInt("DB_PORT", config.DbPort);
         config.DbName = GetEnvString("DB_NAME", config.DbName);

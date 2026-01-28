@@ -1,5 +1,6 @@
 using System.Net.Sockets;
 using System.Text;
+using System.Security.Cryptography;
 using Compression;
 using P2PBank.Commands;
 using P2PBank.Logging;
@@ -13,16 +14,18 @@ public class ClientHandler
     private CommandParser _parser;
     private Logger _logger;
     private int _timeout;
+    private string _privateKey;
 
     private TcpBankServer _server;
 
-    public ClientHandler(TcpClient client, CommandParser parser, Logger logger, int timeout, TcpBankServer server)
+    public ClientHandler(TcpClient client, CommandParser parser, Logger logger, int timeout, TcpBankServer server, string privateKey)
     {
         _client = client;
         _parser = parser;
         _server = server;
         _logger = logger;
         _timeout = timeout;
+        _privateKey = privateKey;
     }
 
     public async Task Handle(CancellationToken cancellationToken = default)
@@ -71,17 +74,33 @@ public class ClientHandler
                 if (line.Trim() == "LISTENER")
                 {
                     specialCommand = true;
-                    _timeout = Timeout.Infinite;
-                    //_client.ReceiveTimeout = _timeout;
-                    //_client.SendTimeout = _timeout;
-                    _logger.LogInfo("Listener connected: " + clientIp);
-                    _logger.Subscribe(new CompressedStreamLoggerSubscriber(writer, new ZstdCompressor()));
+                    if (PerformChallenge(reader, writer))
+                    {
+                        _timeout = Timeout.Infinite;
+                        //_client.ReceiveTimeout = _timeout;
+                        //_client.SendTimeout = _timeout;
+                        _logger.LogInfo("Listener connected: " + clientIp);
+                        _logger.Subscribe(new CompressedStreamLoggerSubscriber(writer, new ZstdCompressor(), _privateKey));
+                    }
+                    else
+                    {
+                        _logger.LogError("Listener authentication failed: " + clientIp);
+                        break;
+                    }
                 }
                 else if (line.Trim() == "SHUTDOWN")
                 {
                     specialCommand = true;
-                    _logger.LogInfo("Shutdown command received from: " + clientIp);
-                    _server.Stop();
+                    if (PerformChallenge(reader, writer))
+                    {
+                        _logger.LogInfo("Shutdown command received from: " + clientIp);
+                        _server.Stop();
+                    }
+                    else
+                    {
+                        _logger.LogError("Shutdown authentication failed: " + clientIp);
+                        break;
+                    }
                 }
 
                 // parse and execute command
@@ -107,6 +126,32 @@ public class ClientHandler
         {
             _logger.LogConnection(clientIp, false);
             _client.Close();
+        }
+    }
+
+    private bool PerformChallenge(StreamReader reader, StreamWriter writer)
+    {
+        try
+        {
+            var challenge = Guid.NewGuid().ToString();
+            writer.WriteLine(challenge);
+
+            var responseTask = reader.ReadLineAsync();
+            if (!responseTask.Wait(_timeout)) return false;
+            var response = responseTask.Result;
+
+            if (response == null) return false;
+
+            using (var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_privateKey)))
+            {
+                var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(challenge));
+                var expectedResponse = Convert.ToBase64String(hash);
+                return response == expectedResponse;
+            }
+        }
+        catch
+        {
+            return false;
         }
     }
 }

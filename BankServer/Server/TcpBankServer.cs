@@ -7,27 +7,33 @@ namespace P2PBank.Server;
 
 public class TcpBankServer
 {
-    private int _port;
-    private CommandParser _parser;
-    private Logger _logger;
-    private int _timeout;
-    private TcpListener? _listener;
+    private readonly int _port;
+    private readonly CommandParser _parser;
+    private readonly Logger _logger;
+    private readonly int _timeout;
+    private readonly string _privateKey;
+    private readonly TcpListener _listener;
     private bool _running = false;
     private CancellationTokenSource? _cts;
 
     private Action _onShutdown = () => {};
 
-    public TcpBankServer(int port, CommandParser parser, Logger logger, int timeout)
+    public TcpBankServer(int port,
+        CommandParser parser,
+        Logger logger,
+        int timeout,
+        string privateKey)
     {
         _port = port;
+        _listener = new TcpListener(IPAddress.Any, port);
         _parser = parser;
         _logger = logger;
         _timeout = timeout;
+        _privateKey = privateKey;
     }
 
     public void Start()
     {
-        _listener = new TcpListener(IPAddress.Any, _port);
         _listener.Start();
         _running = true;
 
@@ -44,7 +50,7 @@ public class TcpBankServer
                 // new thread for each client - assignment says real parallelism
                 Thread t = new Thread(async () =>
                 {
-                    var handler = new ClientHandler(client, _parser, _logger, _timeout, this);
+                    var handler = new ClientHandler(client, _parser, _logger, _timeout, this, _privateKey);
                     await handler.Handle(_cts.Token);
                 });
                 t.Start();
