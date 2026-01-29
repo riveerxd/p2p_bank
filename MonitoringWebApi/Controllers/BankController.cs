@@ -60,13 +60,62 @@ public class BankController : ControllerBase
             var initMessage = Encoding.UTF8.GetBytes("Connected!\n");
             await webSocket.SendAsync(new ArraySegment<byte>(initMessage), WebSocketMessageType.Text, true, CancellationToken.None);
 
+            var lastHeartbeat = DateTime.UtcNow;
+            using var heartbeatCts = new CancellationTokenSource();
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, heartbeatCts.Token);
+
+            var receiveTask = Task.Run(async () =>
+            {
+                var buffer = new byte[1024];
+                try
+                {
+                    while (webSocket.State == WebSocketState.Open && !linkedCts.Token.IsCancellationRequested)
+                    {
+                        var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), linkedCts.Token);
+                        if (result.MessageType == WebSocketMessageType.Close) break;
+
+                        var msg = Encoding.UTF8.GetString(buffer, 0, result.Count);
+                        if (msg.Trim() == "HEARTBEAT")
+                        {
+                            lastHeartbeat = DateTime.UtcNow;
+                        }
+                    }
+                }
+                catch
+                {
+                }
+            });
+
+            var monitorTask = Task.Run(async () =>
+            {
+                try
+                {
+                    while (!linkedCts.Token.IsCancellationRequested)
+                    {
+                        if (DateTime.UtcNow - lastHeartbeat > TimeSpan.FromSeconds(10))
+                        {
+                            _logger.LogWarning("Client heartbeat timeout. Closing connection.");
+                            heartbeatCts.Cancel();
+                            if (webSocket.State == WebSocketState.Open)
+                            {
+                                await webSocket.CloseAsync(WebSocketCloseStatus.PolicyViolation, "Heartbeat timeout", CancellationToken.None);
+                            }
+                            break;
+                        }
+                        await Task.Delay(1000, linkedCts.Token);
+                    }
+                }
+                catch
+                {
+                }
+            });
+
             TcpClientStream? reader = null;
             try
             {
-                while (webSocket.State == WebSocketState.Open && !_cts.Token.IsCancellationRequested)
+                while (webSocket.State == WebSocketState.Open && !linkedCts.Token.IsCancellationRequested)
                 {
-                    // retry until bank is up or client disconnects
-                    while (reader == null && webSocket.State == WebSocketState.Open && !_cts.Token.IsCancellationRequested)
+                    while (reader == null && webSocket.State == WebSocketState.Open && !linkedCts.Token.IsCancellationRequested)
                     {
                         try
                         {
@@ -74,22 +123,23 @@ public class BankController : ControllerBase
                         }
                         catch (SocketException)
                         {
-                            await webSocket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes("CONNECTION_CLOSED" + "\n")), WebSocketMessageType.Text, true, CancellationToken.None);
+                            if (webSocket.State == WebSocketState.Open)
+                                await webSocket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes("CONNECTION_CLOSED" + "\n")), WebSocketMessageType.Text, true, CancellationToken.None);
                             _logger.LogWarning("Bank server not available, retrying in 3s...");
-                            await Task.Delay(3000, _cts.Token);
+                            await Task.Delay(3000, linkedCts.Token);
                         }
                     }
 
                     // let the client know hes connected
-                    if (webSocket.State == WebSocketState.Open)
+                    if (webSocket.State == WebSocketState.Open && !linkedCts.Token.IsCancellationRequested)
                         await webSocket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes("CONNECTION_ESTABLISHED" + "\n")), WebSocketMessageType.Text, true, CancellationToken.None);
 
                     // stream logs until connection drops
-                    while (reader != null && reader.CanRead && webSocket.State == WebSocketState.Open && !_cts.Token.IsCancellationRequested)
+                    while (reader != null && reader.CanRead && webSocket.State == WebSocketState.Open && !linkedCts.Token.IsCancellationRequested)
                     {
                         try
                         {
-                            var rawLine = await reader.GetStream().ReadLineAsync(_cts.Token);
+                            var rawLine = await reader.GetStream().ReadLineAsync(linkedCts.Token);
                             if (rawLine == null) break;
 
                             var encryptedBytes = Convert.FromBase64String(rawLine);
@@ -149,6 +199,7 @@ public class BankController : ControllerBase
             }
             finally
             {
+                heartbeatCts.Cancel();
                 reader?.Dispose();
             }
         }

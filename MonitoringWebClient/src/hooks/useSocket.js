@@ -18,6 +18,7 @@ export default function useSocket() {
     const [isConnected, setConnected] = useState(false);
     const [reconnectCount, setReconnectCount] = useState(0);
     const reconnectTimeoutRef = useRef(null);
+    const heartbeatIntervalRef = useRef(null);
 
     const messageHandlersRef = useRef(new Set());
 
@@ -48,11 +49,19 @@ export default function useSocket() {
             console.log("WebSocket Connected");
             
             socket.addEventListener('message', handleIncomingMessage);
+
+            if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+            heartbeatIntervalRef.current = setInterval(() => {
+                if (socket.readyState === WebSocket.OPEN) {
+                    socket.send("HEARTBEAT");
+                }
+            }, 5000);
             
             setReconnectCount(prev => prev + 1);
         };
 
         socket.onclose = () => {
+            if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
             setConnected(false);
             console.log("WebSocket disconnected, attempting to reconnect...");
             
@@ -76,6 +85,7 @@ export default function useSocket() {
 
         return () => {
             if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+            if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
             if (socket) {
                 socket.removeEventListener('message', handleIncomingMessage);
             }
