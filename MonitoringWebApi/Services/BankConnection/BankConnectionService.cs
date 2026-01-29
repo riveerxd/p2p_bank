@@ -3,7 +3,7 @@ using System.Text;
 using System.Security.Cryptography;
 using MonitoringWebApi.Stream;
 
-namespace MonitoringWebApi.Services;
+namespace MonitoringWebApi.Services.BankConnection;
 
 public class BankConnectionService : IBankConnectionService
 {

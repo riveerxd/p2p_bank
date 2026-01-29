@@ -1,6 +1,6 @@
 using MonitoringWebApi.Stream;
 
-namespace MonitoringWebApi.Services;
+namespace MonitoringWebApi.Services.BankConnection;
 
 public interface IBankConnectionService
 {

@@ -1,5 +1,5 @@
-using MonitoringWebApi.Services;
-using DotNetEnv;
+using MonitoringWebApi.Services.BankConnection;
+using MonitoringWebApi.Services.KeyProvider;
 
 namespace MonitoringWebApi;
 
@@ -7,7 +7,6 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        DotNetEnv.Env.Load();
         var builder = WebApplication.CreateBuilder(args);
 
         // Add services to the container.
@@ -17,11 +16,17 @@ public class Program
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
 
-        builder.Services.AddSingleton<IBankConnectionService, BankConnectionService>(sp =>
+        builder.Services.AddScoped<IKeyProviderService, KeyProviderService>(sp =>
+        {
+            var privateKey = builder.Configuration.GetSection("Encryption").GetValue<string?>("PrivateKey") ?? "";
+            return new KeyProviderService(privateKey);
+        });
+
+        builder.Services.AddScoped<IBankConnectionService, BankConnectionService>(sp =>
         {
             var host = builder.Configuration.GetSection("Server").GetValue<string>("Host") ?? throw new InvalidOperationException("Server host configuration is missing");
             var port = builder.Configuration.GetSection("Server").GetValue<int?>("Port") ?? throw new InvalidOperationException("Server port configuration is missing");
-            var privateKey = Environment.GetEnvironmentVariable("PRIVATE_KEY") ?? "";
+            var privateKey = builder.Configuration.GetSection("Encryption").GetValue<string?>("PrivateKey") ?? "";
             return new BankConnectionService(host, port, privateKey);
         });
 

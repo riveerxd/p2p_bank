@@ -5,8 +5,9 @@ using System.Security.Cryptography;
 using System.IO;
 using Compression;
 using Microsoft.AspNetCore.Mvc;
-using MonitoringWebApi.Services;
 using MonitoringWebApi.Stream;
+using MonitoringWebApi.Services.BankConnection;
+using MonitoringWebApi.Services.KeyProvider;
 
 namespace MonitoringWebApi.Controllers;
 
@@ -21,13 +22,15 @@ public class BankController : ControllerBase
 
     private readonly CancellationTokenSource _cts = new();
 
-    public BankController(ILogger<BankController> logger, IBankConnectionService bankConnectionService, IHostApplicationLifetime appLifetime)
+    public BankController(ILogger<BankController> logger, IBankConnectionService bankConnectionService, IHostApplicationLifetime appLifetime, IKeyProviderService keyProviderService)
     {
         _logger = logger;
         _bankConnectionService = bankConnectionService;
         _appLifetime = appLifetime;
 
-        var privateKey = Environment.GetEnvironmentVariable("PRIVATE_KEY") ?? "";
+        var privateKey = "";
+        if (keyProviderService != null) privateKey = keyProviderService.GetKey();
+        else logger.LogWarning("KeyProviderService not registered! Key is empty!");
         using (var sha256 = SHA256.Create())
         {
             _key = sha256.ComputeHash(Encoding.UTF8.GetBytes(privateKey));
