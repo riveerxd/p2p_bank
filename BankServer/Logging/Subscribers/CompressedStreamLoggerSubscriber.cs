@@ -58,5 +58,9 @@ public class CompressedStreamLoggerSubscriber : ILoggerSubscriber
         {
             _disposed = true;
         }
+        catch (ObjectDisposedException)
+        {
+            _disposed = true;
+        }
     }
 }

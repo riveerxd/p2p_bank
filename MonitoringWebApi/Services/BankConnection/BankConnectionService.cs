@@ -21,11 +21,7 @@ public class BankConnectionService : IBankConnectionService
     private async Task<TcpClient> InitializeClient()
     {
         var tcpClient = new TcpClient();
-        if (tcpClient == null || !tcpClient.Connected)
-        {
-            tcpClient = new TcpClient();
-            await tcpClient.ConnectAsync(_host, _port);
-        }
+        await tcpClient.ConnectAsync(_host, _port);
         return tcpClient;
     }
 

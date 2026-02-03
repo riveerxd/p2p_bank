@@ -43,6 +43,8 @@ public class ClientHandler
             var writer = new StreamWriter(stream, Encoding.UTF8);
             writer.AutoFlush = true;
 
+            bool isListener = false;
+
             while (_client.Connected)
             {
                 string? line = null;
@@ -74,13 +76,18 @@ public class ClientHandler
                 if (line.Trim() == "LISTENER")
                 {
                     specialCommand = true;
-                    if (PerformChallenge(reader, writer))
+                    if (isListener)
+                    {
+                        // Already a listener
+                    }
+                    else if (PerformChallenge(reader, writer))
                     {
                         _timeout = Timeout.Infinite;
                         //_client.ReceiveTimeout = _timeout;
                         //_client.SendTimeout = _timeout;
                         _logger.LogInfo("Listener connected: " + clientIp);
                         _logger.Subscribe(new CompressedStreamLoggerSubscriber(writer, new ZstdCompressor(), _privateKey));
+                        isListener = true;
                     }
                     else
                     {
@@ -117,7 +124,7 @@ public class ClientHandler
                 }
 
                 // parse and execute command
-                if (!specialCommand)
+                if (!specialCommand && !isListener)
                 {
                     string response = _parser.Parse(line);
                     _logger.LogCommand(clientIp, line, response);

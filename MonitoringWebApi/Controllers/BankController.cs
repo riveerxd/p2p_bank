@@ -84,7 +84,7 @@ public class BankController : ControllerBase
                 catch
                 {
                 }
-            });
+            }, linkedCts.Token);
 
             var monitorTask = Task.Run(async () =>
             {
@@ -108,7 +108,7 @@ public class BankController : ControllerBase
                 catch
                 {
                 }
-            });
+            }, linkedCts.Token);
 
             TcpClientStream? reader = null;
             try
