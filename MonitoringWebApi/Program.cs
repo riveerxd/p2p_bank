@@ -30,6 +30,14 @@ public class Program
             return new BankConnectionService(host, port, privateKey);
         });
 
+        builder.Services.AddCors(options =>
+        {
+            options.AddDefaultPolicy(p =>
+            {
+                p.SetIsOriginAllowed((url) => true);
+            });
+        });
+
         var app = builder.Build();
 
         app.UseWebSockets();
@@ -41,8 +49,9 @@ public class Program
             app.UseSwaggerUI();
         }
 
-        app.UseAuthorization();
+        app.UseCors();
 
+        app.UseAuthorization();
 
         app.MapControllers();
 

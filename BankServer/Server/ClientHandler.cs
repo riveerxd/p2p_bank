@@ -102,6 +102,19 @@ public class ClientHandler
                         break;
                     }
                 }
+                else if (line.Trim() == "START_TIME")
+                {
+                    specialCommand = true;
+                    if (PerformChallenge(reader, writer))
+                    {
+                        writer.WriteLine(_server.RunningSince);
+                    }
+                    else
+                    {
+                        _logger.LogError("Start time query authentication failed: " + clientIp);
+                        break;
+                    }
+                }
 
                 // parse and execute command
                 if (!specialCommand)

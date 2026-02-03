@@ -6,4 +6,6 @@ public interface IBankConnectionService
 {
     Task ShutdownServerAsync();
     Task<TcpClientStream> GetLogStreamReader();
+
+    Task<DateTime> GetStartTime();
 }

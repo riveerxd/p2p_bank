@@ -58,6 +58,27 @@ public class BankConnectionService : IBankConnectionService
         return new TcpClientStream(tcpClient);
     }
 
+    public async Task<DateTime> GetStartTime()
+    {
+        var tcpClient = await InitializeClient();
+        var networkStream = tcpClient.GetStream();
+
+        var reader = new StreamReader(networkStream);
+        var writer = new StreamWriter(networkStream) { AutoFlush = true };
+        await writer.WriteLineAsync("START_TIME");
+        
+        await HandleChallenge(reader, writer);
+
+        string? timeString = await reader.ReadLineAsync();
+        if (timeString == null)
+        {
+            throw new InvalidDataException("Invalid data received from server!");
+        }
+        
+        DateTime time = Convert.ToDateTime(timeString);
+        return time;
+    }
+
     private async Task HandleChallenge(StreamReader reader, StreamWriter writer)
     {
         var challenge = await reader.ReadLineAsync();

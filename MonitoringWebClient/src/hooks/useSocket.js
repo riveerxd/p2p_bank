@@ -2,12 +2,6 @@ import { useState, useEffect, useCallback, useRef } from "react";
 
 let socket = null;
 
-/*window.addEventListener('beforeunload', () => {
-    if (socket) {
-        socket.close();
-    }
-});*/
-
 window.onbeforeunload = () => {
     if (!socket) return;
     socket.onclose = () => {};
@@ -26,7 +20,6 @@ export default function useSocket() {
         if (event.data === "CONNECTION_ESTABLISHED\n") setConnected(true);
         else if (event.data === "CONNECTION_CLOSED\n") setConnected(false);
         
-        // Broadcast to all subscribers in the Ref
         messageHandlersRef.current.forEach(handler => {
             try {
                 handler(event);

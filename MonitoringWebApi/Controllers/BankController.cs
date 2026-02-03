@@ -208,4 +208,10 @@ public class BankController : ControllerBase
             HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
         }
     }
+
+    [HttpGet("/starttime", Name = "Starttime")]
+    public async Task<DateTime> StartTime()
+    {
+        return await _bankConnectionService.GetStartTime();
+    }
 }

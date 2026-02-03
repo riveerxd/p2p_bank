@@ -14,9 +14,10 @@ public class TcpBankServer
     private readonly string _privateKey;
     private readonly TcpListener _listener;
     private bool _running = false;
+    private DateTime? _runningSince;
     private CancellationTokenSource? _cts;
 
-    private Action _onShutdown = () => {};
+    private Action _onShutdown = () => { };
 
     public TcpBankServer(int port,
         CommandParser parser,
@@ -36,12 +37,13 @@ public class TcpBankServer
     {
         _listener.Start();
         _running = true;
+        _runningSince = DateTime.Now;
 
         _logger.LogInfo("Bank server started on port " + _port);
 
         // main accept loop
         _cts = new CancellationTokenSource();
-        while(_running)
+        while (_running)
         {
             try
             {
@@ -55,12 +57,12 @@ public class TcpBankServer
                 });
                 t.Start();
             }
-            catch(SocketException)
+            catch (SocketException)
             {
                 // this happens when we stop the listener, its fine
-                if(!_running) break;
+                if (!_running) break;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError("Error accepting client: " + ex.Message);
             }
@@ -74,5 +76,8 @@ public class TcpBankServer
         _logger.LogInfo("Bank server stopped");
         _cts?.Cancel();
         _cts = null;
+        _runningSince = null;
     }
+
+    public DateTime? RunningSince { get => _runningSince; }
 }
