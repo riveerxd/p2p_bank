@@ -2,12 +2,6 @@ import { useState, useEffect, useCallback, useRef } from "react";
 
 let socket = null;
 
-/*window.addEventListener('beforeunload', () => {
-    if (socket) {
-        socket.close();
-    }
-});*/
-
 window.onbeforeunload = () => {
     if (!socket) return;
     socket.onclose = () => {};
@@ -18,6 +12,7 @@ export default function useSocket() {
     const [isConnected, setConnected] = useState(false);
     const [reconnectCount, setReconnectCount] = useState(0);
     const reconnectTimeoutRef = useRef(null);
+    const heartbeatIntervalRef = useRef(null);
 
     const messageHandlersRef = useRef(new Set());
 
@@ -25,7 +20,6 @@ export default function useSocket() {
         if (event.data === "CONNECTION_ESTABLISHED\n") setConnected(true);
         else if (event.data === "CONNECTION_CLOSED\n") setConnected(false);
         
-        // Broadcast to all subscribers in the Ref
         messageHandlersRef.current.forEach(handler => {
             try {
                 handler(event);
@@ -48,11 +42,19 @@ export default function useSocket() {
             console.log("WebSocket Connected");
             
             socket.addEventListener('message', handleIncomingMessage);
+
+            if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+            heartbeatIntervalRef.current = setInterval(() => {
+                if (socket.readyState === WebSocket.OPEN) {
+                    socket.send("HEARTBEAT");
+                }
+            }, 5000);
             
             setReconnectCount(prev => prev + 1);
         };
 
         socket.onclose = () => {
+            if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
             setConnected(false);
             console.log("WebSocket disconnected, attempting to reconnect...");
             
@@ -76,6 +78,7 @@ export default function useSocket() {
 
         return () => {
             if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+            if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
             if (socket) {
                 socket.removeEventListener('message', handleIncomingMessage);
             }

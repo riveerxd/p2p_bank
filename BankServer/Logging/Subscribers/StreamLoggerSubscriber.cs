@@ -23,5 +23,9 @@ public class StreamLoggerSubscriber : ILoggerSubscriber
         {
             _disposed = true;
         }
+        catch (ObjectDisposedException)
+        {
+            _disposed = true;
+        }
     }
 }

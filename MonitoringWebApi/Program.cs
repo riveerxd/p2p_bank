@@ -1,4 +1,5 @@
-using MonitoringWebApi.Services;
+using MonitoringWebApi.Services.BankConnection;
+using MonitoringWebApi.Services.KeyProvider;
 
 namespace MonitoringWebApi;
 
@@ -15,11 +16,26 @@ public class Program
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
 
-        builder.Services.AddSingleton<IBankConnectionService, BankConnectionService>(sp =>
+        builder.Services.AddScoped<IKeyProviderService, KeyProviderService>(sp =>
+        {
+            var privateKey = builder.Configuration.GetSection("Encryption").GetValue<string?>("PrivateKey") ?? "";
+            return new KeyProviderService(privateKey);
+        });
+
+        builder.Services.AddScoped<IBankConnectionService, BankConnectionService>(sp =>
         {
             var host = builder.Configuration.GetSection("Server").GetValue<string>("Host") ?? throw new InvalidOperationException("Server host configuration is missing");
             var port = builder.Configuration.GetSection("Server").GetValue<int?>("Port") ?? throw new InvalidOperationException("Server port configuration is missing");
-            return new BankConnectionService(host, port);
+            var privateKey = builder.Configuration.GetSection("Encryption").GetValue<string?>("PrivateKey") ?? "";
+            return new BankConnectionService(host, port, privateKey);
+        });
+
+        builder.Services.AddCors(options =>
+        {
+            options.AddDefaultPolicy(p =>
+            {
+                p.SetIsOriginAllowed((url) => true);
+            });
         });
 
         var app = builder.Build();
@@ -33,8 +49,9 @@ public class Program
             app.UseSwaggerUI();
         }
 
-        app.UseAuthorization();
+        app.UseCors();
 
+        app.UseAuthorization();
 
         app.MapControllers();
 

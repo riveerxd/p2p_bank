@@ -7,35 +7,43 @@ namespace P2PBank.Server;
 
 public class TcpBankServer
 {
-    private int _port;
-    private CommandParser _parser;
-    private Logger _logger;
-    private int _timeout;
-    private TcpListener? _listener;
+    private readonly int _port;
+    private readonly CommandParser _parser;
+    private readonly Logger _logger;
+    private readonly int _timeout;
+    private readonly string _privateKey;
+    private readonly TcpListener _listener;
     private bool _running = false;
+    private DateTime? _runningSince;
     private CancellationTokenSource? _cts;
 
-    private Action _onShutdown = () => {};
+    private Action _onShutdown = () => { };
 
-    public TcpBankServer(int port, CommandParser parser, Logger logger, int timeout)
+    public TcpBankServer(int port,
+        CommandParser parser,
+        Logger logger,
+        int timeout,
+        string privateKey)
     {
         _port = port;
+        _listener = new TcpListener(IPAddress.Any, port);
         _parser = parser;
         _logger = logger;
         _timeout = timeout;
+        _privateKey = privateKey;
     }
 
     public void Start()
     {
-        _listener = new TcpListener(IPAddress.Any, _port);
         _listener.Start();
         _running = true;
+        _runningSince = DateTime.Now;
 
         _logger.LogInfo("Bank server started on port " + _port);
 
         // main accept loop
         _cts = new CancellationTokenSource();
-        while(_running)
+        while (_running)
         {
             try
             {
@@ -44,17 +52,17 @@ public class TcpBankServer
                 // new thread for each client - assignment says real parallelism
                 Thread t = new Thread(async () =>
                 {
-                    var handler = new ClientHandler(client, _parser, _logger, _timeout, this);
+                    var handler = new ClientHandler(client, _parser, _logger, _timeout, this, _privateKey);
                     await handler.Handle(_cts.Token);
                 });
                 t.Start();
             }
-            catch(SocketException)
+            catch (SocketException)
             {
                 // this happens when we stop the listener, its fine
-                if(!_running) break;
+                if (!_running) break;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError("Error accepting client: " + ex.Message);
             }
@@ -68,5 +76,8 @@ public class TcpBankServer
         _logger.LogInfo("Bank server stopped");
         _cts?.Cancel();
         _cts = null;
+        _runningSince = null;
     }
+
+    public DateTime? RunningSince { get => _runningSince; }
 }
