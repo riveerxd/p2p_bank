@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-01-29 - Jan Koubek
+* Oprava bugů, zajištění správnosti komunikace
+* Předělání private key v .env na konfigurační soubor
+* Implementace ověření připojení monitoring klienta
+
+## 2026-01-28 - Jan Koubek
+* Implementace šifrování komunikace mezi BankServer a MonitoringWebApi
+* Implementace zašifrování výzvy
+
 ## 2026-01-27 - Lukáš Hrehor
 * Fix websocket listenerů po reconnectu
 * Retry logika pro bank connection v log endpointu
