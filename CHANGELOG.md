@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-02-03
+* Oprava různých bugů
+
 ## 2026-01-29 - Jan Koubek
 * Oprava bugů, zajištění správnosti komunikace
 * Předělání private key v .env na konfigurační soubor
